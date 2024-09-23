@@ -1,0 +1,810 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>mitaki28.info blog</title>
+    <link rel="stylesheet" type="text/css" href="/css/normalize/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="/css/highlight/github.css" />
+    <link rel="stylesheet" type="text/css" href="/css/base.css" />
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">mitaki28.info blog</a></h1>
+      <nav>
+	    <ul>
+	  <li><a href="/">INDEX</a></li>
+	  <li><a href="/list">LIST</a></li>
+	</ul>
+      </nav>
+    </header>
+
+    <div id="content">
+    
+
+<main>
+
+<article>
+  <h1>
+    <a href="/1450106282459">
+      CodeChef CHEFFILT
+    </a>
+  </h1>
+  <aside id="createdAt">
+    created at: <time> 2015-12-15 00:18:02</time>
+  </aside>
+
+  
+  <h2>はじめに</h2>
+<p>この問題を本番中解いていた時に，$O(4^W)$から$O(2^W)$に落とせることに気づいて面白かったのでメモ．ぶっちゃけ気づいたのは，提出前に手元でテストしててDPの表を出力してみたからで，完全に偶然だったりする．</p>
+<h2>問題</h2>
+<h3>参照</h3>
+<p><a href="https://www.codechef.com/DEC15/problems/CHEFFILT">https://www.codechef.com/DEC15/problems/CHEFFILT</a></p>
+<h3>要約</h3>
+<p>$S~(0 \leq S &lt; 2^W-1)$ と $n~(1 \leq n \leq 100,000)$ 個の数列$F_i(1 \leq i \leq n, 0 \leq F_i &lt; 2^W)$ が与えられる．$F_i$ の部分集合のうち全要素の xor を取った結果が $S$ となるものの個数を$1,000,000,007$で割った余りを求めよ．（$F$ には重複した値が含まれるが，異なるものとして扱う）</p>
+<h2>想定解法</h2>
+<h3>参照</h3>
+<p><a href="https://discuss.codechef.com/questions/77624/cheffilt-editorial">https://discuss.codechef.com/questions/77624/cheffilt-editorial</a></p>
+<h3>要約</h3>
+<p>$F_i$ に含まれる相違なる値は $2^W$ 個以下である．そこで，$F$ 中で値が $x$ である要素の個数を $C(x)~(0 \leq x &lt; 2^W)$とおく．</p>
+<p>同じ値同士の xor は0(すなわち $x \mathrel{\mbox{xor}} x = 0$) であることから，ある値 $x$ が $k$ 個存在する場合，</p>
+<ol>
+<li>偶数個を集合に含めた場合は，含めない場合と同じ結果</li>
+<li>奇数個を集合に含めた場合は，$x$ 以外の全ビット列と $x$ の xor を取ったものが結果</li>
+</ol>
+<p>となる．ここで，($k$ 個のものの中から偶数個選ぶ選び方）＝($k$ 個のものの中から奇数個選ぶ選び方）＝$2^{k-1}$ であることに注意すると， 以下のDPを考えることができる．</p>
+<ul>
+<li>$D(x, y) := $ $F$ で $x$ 以下の値のみからなる部分集合のうち，その全要素の xor が $y$ となるものの個数．</li>
+</ul>
+<p>$$
+D(x, y) = \begin{cases}
+D(x - 1, y) &amp; C(x) = 0 \\
+(D(x - 1, y) + D(x - 1, y \mathrel{\mbox{xor}} x)) \cdot 2^{C(x)-1} &amp; C(x) &gt; 0 \\
+\end{cases}
+$$</p>
+<p>この解法の計算量は $O(4^W)$ となる．</p>
+<h2>O(2^w) 解法</h2>
+<p>実は以下の性質が成り立つ．</p>
+<ol>
+<li>任意の $y$ について，$D(x, y) \neq 0$ ならばその値は $x$ によって一意に定まる
+$$
+D(x, y) = \begin{cases}
+0 &amp; D(x, y) = 0 \\
+E(x) &amp; D(x, y) \neq 0 \\
+\end{cases}
+$$</li>
+<li>$E(x)$ は $D(x - 1, x)$ の値から一意に計算可能
+$$
+E(x) = \begin{cases}
+E(x - 1) \cdot 2^{C(x)-1} &amp; D(x - 1, x) = 0 \\
+E(x - 1) \cdot 2^{C(x)} &amp; D(x - 1, x) \neq 0
+\end{cases}
+$$</li>
+<li>$E(x)$の構成手順から，解は $D(2^W-1, S)=0$ ならば0, そうでなければ $2^{n-m}$．ただし，$m$は$D(x, x - 1) \neq 0$ なる $x$ の個数．</li>
+</ol>
+<h3>補題</h3>
+<p>$$
+\begin{cases}
+D(x - 1, x) = 0 \wedge D(x - 1, y) \neq 0 \Rightarrow D(x - 1, y \mathrel{\mbox{xor}} x) = 0 \\
+D(x - 1, x) \neq 0 \wedge D(x - 1, y) \neq 0 \Rightarrow D(x - 1, y \mathrel{\mbox{xor}} x) \neq 0
+\end{cases}
+$$</p>
+<h4>補題の証明</h4>
+<p>$D(x - 1, x) = 0 \wedge D(x - 1, y) \neq 0 \wedge D(x - 1, y \mathrel{\mbox{xor}} x) \neq 0$ となる $y$ が存在すると仮定する．このとき，全要素の xor が $y$ になる集合の1つを $U$ ，$y \mathrel{\mbox{xor}} x$ になる集合を $V$ とおくと，$V$ から 共通集合 $U \cap V$ を取り除き差集合 $U \setminus V$ を加えた集合の全要素のxorは $x$ となるため，矛盾する．$D(x - 1, x) \neq 0 \wedge D(x - 1, y) \neq 0 \Rightarrow D(x - 1, y \mathrel{\mbox{xor}} x) \neq 0$も同様に示せる．</p>
+<h3>証明</h3>
+<p>$x=0$ のとき， $D(0, 0) = 2^{C(0)}$ かつ $D(0, y) = 0~(y \neq 0)$ なので，成り立つ($E(0)=2^{C(0)}$)</p>
+<p>$x-1$のとき，成り立つと仮定すると，$x$のとき，</p>
+<ol>
+<li>$D(x - 1, x)=0$ならば，補題から，$D(x - 1, y) \neq 0$ なる $y$ について，$D(x - 1, y \mathrel{\mbox{xor}} x) = 0$であり，$y \neq z \Rightarrow y \mathrel{\mbox{xor}} x  \neq z \mathrel{\mbox{xor}} x$であることから，
+$$
+D(x, y \mathrel{\mbox{xor}} x) = D(x, y) = D(x - 1, y) \cdot 2^{C(x)-1} = E(x-1) \cdot 2^{C(x)-1}
+$$
+であり，$y$ および $y \mathrel{\mbox{xor}} x$ 以外の値 $z$ については $D(x, z) = 0$ となる．</li>
+<li>$D(x - 1, x)\neq0$ならば，補題から，$D(x - 1, y) \neq 0$ なる $y$ について，$D(x - 1, y \mathrel{\mbox{xor}} x) = E(x - 1)$であり，
+$$
+D(x, y) = (D(x - 1, y) + D(x - 1, y \mathrel{\mbox{xor}} x)) \cdot 2^{C(x)-1} = E(x-1) \cdot 2^{C(x)}
+$$
+であり，$y$ 以外の値 $z$ については $D(x, z) = 0$ となる．</li>
+</ol>
+<p>以上から，$x$のときにも性質1,2が成り立つことがわかる．</p>
+<p>性質3は，実際に$E$の漸化式を展開してみるとわかる．</p>
+<h2>実装</h2>
+<p>重要なのは$D(x, y) &gt; 0$かどうかだけであり，個数は独立して計算できるので，$D(x, y) &gt; 0$かどうかを $2^W$ の配列$A$で管理する．これで，$D(x - 1, x) &gt; 0$かどうかを$O(1)$で判定できる．さらに，$D(x, y) &gt; 0$ なる $y$ の集合をリスト$B$でも管理しておく．$D(x, x - 1) = 0$となった場合，リスト$B$の各要素$y$について$y \mathrel{\mbox{xor}} x$ を計算し，$A$および$B$を更新する．$D(x, y) &gt; 0$ なる $y$ の集合は更新のたびに2倍になるため，更新は高々 $\log 2^W=W$ 回しか発生せず，$i$回目の更新の段階におけるリストの要素数は$2^i$のため，全体の計算量は$O(2^W)$</p>
+<h3>ソースコード</h3>
+<pre><code class="language-Python"><span class="hljs-keyword">from</span> collections <span class="hljs-keyword">import</span> Counter
+<span class="hljs-keyword">from</span> sys <span class="hljs-keyword">import</span> stdin
+_data = iter(stdin.read().split(<span class="hljs-string">'\n'</span>))
+input = <span class="hljs-keyword">lambda</span>: next(_data)
+MOD = <span class="hljs-number">1000000007</span>
+L = <span class="hljs-number">10</span>
+<span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> range(int(input())):
+    s = int(input().replace(<span class="hljs-string">'b'</span>, <span class="hljs-string">'0'</span>).replace(<span class="hljs-string">'w'</span>, <span class="hljs-string">'1'</span>), <span class="hljs-number">2</span>)
+    n = int(input())
+    ct = Counter(int(input().replace(<span class="hljs-string">'-'</span>, <span class="hljs-string">'0'</span>).replace(<span class="hljs-string">'+'</span>, <span class="hljs-string">'1'</span>), <span class="hljs-number">2</span>)
+                <span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> range(n))
+    g = [<span class="hljs-keyword">False</span>] * <span class="hljs-number">2</span>**L
+    g[s] = <span class="hljs-keyword">True</span>
+    m = <span class="hljs-number">0</span>
+    <span class="hljs-keyword">for</span> f, x <span class="hljs-keyword">in</span> ct.items():
+        <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> g[f ^ s]:
+            <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> range(<span class="hljs-number">2</span>**L):
+                <span class="hljs-keyword">if</span> g[i]: g[i ^ f] = <span class="hljs-keyword">True</span>
+            m += <span class="hljs-number">1</span>
+    print(pow(<span class="hljs-number">2</span>, n - m, MOD) <span class="hljs-keyword">if</span> g[<span class="hljs-number">0</span>] <span class="hljs-keyword">else</span> <span class="hljs-number">0</span>)
+</code></pre>
+<h2>追記</h2>
+<p>Editorialページのコメントに上がっていたのだけど，Gauss Jordan 使えば$O(\min(n, 2^W) \cdot W^2)$になるらしい．<a href="https://ja.wikipedia.org/wiki/%E8%A1%8C%E7%A9%BA%E9%96%93">行空間</a> の基底を求める問題に帰着できるっぽい？</p>
+
+  
+  <aside class="social">
+  <a href="http://b.hatena.ne.jp/entry/http://blog.mitaki28.info/1450106282459" class="hatena-bookmark-button" data-hatena-bookmark-title="CodeChef CHEFFILT" data-hatena-bookmark-layout="standard-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-url="http://blog.mitaki28.info/1450106282459" data-text="CodeChef CHEFFILT" data-dnt="true">Tweet</a>
+  <script type="text/javascript" src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </aside>
+</article>
+
+
+<article>
+  <h1>
+    <a href="/1449303228375">
+      JAG 夏合宿 2014 Day4 E - AI 解説＋裏話
+    </a>
+  </h1>
+  <aside id="createdAt">
+    created at: <time> 2015-12-05 17:13:48</time>
+  </aside>
+
+  
+  <h2>はじめに</h2>
+<p>この記事は <a href="http://www.adventar.org/calendars/1165">Competitive Programming （その2） Advent Calendar 2015</a> 5日目の記事です．</p>
+<p>1年半にわたって，自分が担当していた問題の解説を放置していたのでこの機会に書きます．</p>
+<p>あと，単純に解法書くだけだとさみしい気がするので，作問体験記ということで，作問時の裏話も書きます．</p>
+<h2>問題</h2>
+<ul>
+<li>コンテスト: JAG 夏合宿 2014 Day4</li>
+<li>問題文: <a href="http://judge.u-aizu.ac.jp/onlinejudge/description.jsp?id=2643">AI | Aizu Online Judge</a></li>
+<li>作問，解説: <a href="https://twitter.com/mitaki28">@mitaki28</a></li>
+<li>テスター: <a href="https://twitter.com/ustimaw">@ustimaw</a></li>
+</ul>
+<h2>解法</h2>
+<ul>
+<li>この問題のプログラムにおいて，条件判定の結果はロボットの位置と向きにのみ依存します．</li>
+<li>つまり，ロボットの位置と向きが全く同じ状態でプログラム中のある文が2回実行された場合，ロボットは以後，同じ動作を無限に繰り返すことがわかります．
+<ul>
+<li>サンプル3でロボットがどう動くのか試してみるとわかると思います．</li>
+</ul>
+</li>
+<li>したがって，(ロボットのx座標)×(ロボットのy座標)×(ロボットの向き)×(プログラム中で実行中の文)について，1度発生した状態をすべて記憶していき，同じ状態に2回到達した時点でゴールに到達不可能なものとすることで解くことができます．</li>
+<li>計算量は $O(hw|s|)$ となり，状態数は高々 $50 \times 50 \times 4 \times 1000=10000000$ で解けます．
+<ul>
+<li>状態数の上限がわかっているので，10000000ステップ回してゴールに到達しなかったら諦めるとかでも解けます．</li>
+<li>ただし，単純に動作文の数だけ数えていると後述する空のプログラムのパターンでTLEするため注意が必要です．</li>
+</ul>
+</li>
+</ul>
+<h2>実装上の注意</h2>
+<ul>
+<li>if 文や while 文については条件によってプログラムを対応する括弧まで読み飛ばす必要があります．毎回，対応する括弧を見つけても良いですが，前処理で対応する括弧を計算しておくと，多少実装が楽になるかもしれません．</li>
+<li>同じ状態に到達したかどうかの判定は，条件文の中で行う必要があります．動作文で判定した場合，while 文中のプログラムが空の場合に無限ループが発生してしまいます．以下のケースでTLEしている人が多かったです．<pre><code><span class="hljs-number">5</span> <span class="hljs-number">3</span>
+<span class="hljs-preprocessor">###</span>
+<span class="hljs-preprocessor">#g#</span>
+<span class="hljs-preprocessor">#.#</span>
+<span class="hljs-preprocessor">#s#</span>
+<span class="hljs-preprocessor">###</span>
+{T}
+</code></pre>
+</li>
+<li>実装量的には1500〜3000byte程度になると思います．</li>
+</ul>
+<h2>ジャッジ解</h2>
+<ul>
+<li>@ustimaw, 1412 byte</li>
+<li>@mitaki28, 2029 byte</li>
+</ul>
+<pre><code class="language-c++"><span class="hljs-preprocessor">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;cassert&gt;</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;iostream&gt;</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;algorithm&gt;</span></span>
+
+<span class="hljs-keyword">using</span> <span class="hljs-keyword">namespace</span> <span class="hljs-built_in">std</span>;
+
+<span class="hljs-keyword">const</span> <span class="hljs-keyword">int</span> MAX_W = <span class="hljs-number">55</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-keyword">int</span> MAX_H = <span class="hljs-number">55</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-keyword">int</span> MAX_L = <span class="hljs-number">1100</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-keyword">int</span> D = <span class="hljs-number">4</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-keyword">int</span> dx[] = {<span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>, -<span class="hljs-number">1</span>};
+<span class="hljs-keyword">const</span> <span class="hljs-keyword">int</span> dy[] = {-<span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>};
+<span class="hljs-keyword">const</span> <span class="hljs-built_in">string</span> ACT = <span class="hljs-string">"^v&lt;&gt;"</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-built_in">string</span> DIR = <span class="hljs-string">"NESW"</span>;
+
+<span class="hljs-keyword">int</span> H, W, K;
+<span class="hljs-keyword">char</span> a[MAX_H][MAX_W];
+<span class="hljs-built_in">string</span> s;
+<span class="hljs-keyword">int</span> y, x, d, p, gy, gx, ct;
+<span class="hljs-keyword">bool</span> used[MAX_H][MAX_W][D][MAX_L];
+<span class="hljs-keyword">int</span> jump[MAX_L];
+
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">prog</span><span class="hljs-params">()</span></span>;
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">stmt</span><span class="hljs-params">()</span></span>;
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">if_stmt</span><span class="hljs-params">()</span></span>;
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">while_stmt</span><span class="hljs-params">()</span></span>;
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">action</span><span class="hljs-params">()</span></span>;
+<span class="hljs-function"><span class="hljs-keyword">bool</span> <span class="hljs-title">cond</span><span class="hljs-params">()</span></span>;
+
+<span class="hljs-function"><span class="hljs-keyword">bool</span> <span class="hljs-title">cond</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-keyword">if</span> (used[y][x][d][p]) <span class="hljs-keyword">throw</span> <span class="hljs-literal">false</span>;
+  used[y][x][d][p] = <span class="hljs-literal">true</span>;
+  <span class="hljs-keyword">bool</span> r = <span class="hljs-literal">false</span>;
+  <span class="hljs-keyword">bool</span> neg = <span class="hljs-literal">false</span>;
+  <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'~'</span>) {
+    neg = <span class="hljs-literal">true</span>;
+    p++;
+  }
+  <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'T'</span>) {
+    r = <span class="hljs-literal">true</span>;
+  } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'C'</span>) {
+    r = (a[y + dy[d]][x + dx[d]] == <span class="hljs-string">'#'</span>);
+  } <span class="hljs-keyword">else</span> {
+    r = (DIR.find(s[p]) == d);
+  }
+  p++;
+  <span class="hljs-keyword">if</span> (neg) r = !r;
+  <span class="hljs-keyword">return</span> r;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">action</span><span class="hljs-params">()</span> </span>{
+  ct++;
+  <span class="hljs-keyword">int</span> nx, ny, nd;
+  <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'^'</span>) {
+    ny = y + dy[d], nx = x + dx[d], nd = d;
+  } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'v'</span>) {
+    ny = y - dy[d], nx = x - dx[d], nd = d;
+  } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'&lt;'</span>) {
+    ny = y, nx = x, nd = (d + <span class="hljs-number">3</span>) % D;
+  } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'&gt;'</span>) {
+    ny = y, nx = x, nd = (d + <span class="hljs-number">1</span>) % D;
+  }
+  <span class="hljs-keyword">if</span> (a[ny][nx] != <span class="hljs-string">'#'</span>) {
+    y = ny;
+    x = nx;
+    d = nd;
+    <span class="hljs-keyword">if</span> (y == gy &amp;&amp; x == gx) <span class="hljs-keyword">throw</span> <span class="hljs-literal">true</span>;
+  }
+  p++;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">while_stmt</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-keyword">int</span> q = p;
+  <span class="hljs-keyword">while</span> (cond()) {
+    prog();
+    p = q;
+  }
+  p = jump[q];
+}
+
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">if_stmt</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-keyword">int</span> q = p;
+  <span class="hljs-keyword">if</span> (cond()) {
+    prog();
+  } <span class="hljs-keyword">else</span> {
+    p = jump[q];
+  }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">prog</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-keyword">for</span> (;;) {
+    <span class="hljs-keyword">if</span> (ACT.find(s[p]) != <span class="hljs-built_in">string</span>::npos) {
+      action();
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'['</span>) {
+      assert(s[p++] == <span class="hljs-string">'['</span>);
+      if_stmt();
+      assert(s[p++] == <span class="hljs-string">']'</span>);
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'{'</span>) {
+      assert(s[p++] == <span class="hljs-string">'{'</span>);
+      while_stmt();
+      assert(s[p++] == <span class="hljs-string">'}'</span>);
+    } <span class="hljs-keyword">else</span> {
+      <span class="hljs-keyword">break</span>;
+    }
+  }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">preprocess</span><span class="hljs-params">(<span class="hljs-keyword">char</span> end)</span> </span>{
+  <span class="hljs-keyword">int</span> q = p;
+  <span class="hljs-keyword">while</span> (s[p] != end) {
+    <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'['</span>) {
+      assert(s[p++] == <span class="hljs-string">'['</span>);
+      preprocess(<span class="hljs-string">']'</span>);
+      assert(s[p++] == <span class="hljs-string">']'</span>);
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'{'</span>) {
+      assert(s[p++] == <span class="hljs-string">'{'</span>);
+      preprocess(<span class="hljs-string">'}'</span>);
+      assert(s[p++] == <span class="hljs-string">'}'</span>);
+    } <span class="hljs-keyword">else</span> {
+      p++;
+    }
+  }
+  jump[q] = p;
+}
+
+
+<span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-built_in">cin</span> &gt;&gt; H &gt;&gt; W;
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; H; i++) {
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> j = <span class="hljs-number">0</span>; j &lt; W; j++) {
+      <span class="hljs-built_in">cin</span> &gt;&gt; a[i][j];
+      <span class="hljs-keyword">if</span> (a[i][j] == <span class="hljs-string">'s'</span>) {
+        y = i;
+        x = j;
+        a[i][j] = <span class="hljs-string">'.'</span>;
+      }
+      <span class="hljs-keyword">if</span> (a[i][j] == <span class="hljs-string">'g'</span>) {
+        gy = i;
+        gx = j;
+        a[i][j] = <span class="hljs-string">'.'</span>;
+      }
+    }
+  }
+  <span class="hljs-built_in">cin</span> &gt;&gt; s;
+  s.push_back(<span class="hljs-string">'$'</span>);
+  
+  p = <span class="hljs-number">0</span>;
+  preprocess(<span class="hljs-string">'$'</span>);
+  
+  p = <span class="hljs-number">0</span>;
+  ct = <span class="hljs-number">0</span>;
+  <span class="hljs-keyword">bool</span> ok = <span class="hljs-literal">false</span>;
+  <span class="hljs-keyword">try</span> {
+    prog();
+  } <span class="hljs-keyword">catch</span>(<span class="hljs-keyword">bool</span> e) {
+    ok = e;
+  }
+  <span class="hljs-built_in">cout</span> &lt;&lt; (ok ? ct : -<span class="hljs-number">1</span>) &lt;&lt; endl;
+  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
+
+</code></pre>
+<h2>裏話</h2>
+<p>せっかくなので，作問時の裏話をつらつら書きます．</p>
+<h3>問題が作られた経緯</h3>
+<ul>
+<li>ICPCということで，強実装系の構文解析問題を入れようという話になった</li>
+<li>過去の構文解析系の問題は式の解析が多かったので，if文やwhile文を使ってみた</li>
+<li>プログラムで実際にロボットを盤面上で動かしてみると面白いんじゃないかと思いつく
+<ul>
+<li>発想自体は <a href="http://judge.u-aizu.ac.jp/onlinejudge/description.jsp?id=2000">Misterious Gems | Aizu Online Judge</a> とかと同じ感じがする．</li>
+</ul>
+</li>
+<li>単純な構文解析と見せかけてメモ化が必要というのがひねりがあって面白そうという話になり採用</li>
+</ul>
+<h3>テストケースについて</h3>
+<ul>
+<li>この問題は，むしろテストケースを作るのが大変だった
+<ul>
+<li>ランダムケースを作るのが難しい
+<ul>
+<li>適当に作ると，ほぼ100%ゴールまで辿りつけない</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>最終的にランダムケースは以下の手順で作成
+<ol>
+<li>ランダムな迷路を生成</li>
+<li>ランダムなプログラムを生成</li>
+<li>1, 2を使って2つのケースを生成
+<ol>
+<li>ランダムな位置にゴールをおいたもの(到達失敗ケース)</li>
+<li>ランダムなプログラムで移動する範囲の中でスタート地点から最も離れた位置にゴールを置いたもの(到達成功ケース)</li>
+</ol>
+</li>
+</ol>
+</li>
+<li>とはいっても，今回の場合，ランダムケースはあまり当てにならないので，手動ケースも作成した
+<ul>
+<li>無限ループに関するもの: 4つ</li>
+<li>空プログラムを含むもの: 1つ</li>
+<li>50x50のほとんど空の盤面上を動き回るもの: 6つ</li>
+<li>if文やwhile文を限界までネストしたもの: 2つ</li>
+</ul>
+</li>
+<li>これでも，テストケースとしてはちょっと弱いなぁと思ってたら @ustimaw 君がマラソンマッチパワーを発揮してとんでもなく強力なケースを作ってくれていた<pre><code><span class="hljs-number">50</span> <span class="hljs-number">50</span>
+#################################################<span class="hljs-array">#
+</span><span class="hljs-array">#s..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span><span class="hljs-array">#..............</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span>##<span class="hljs-array">#...</span><span class="hljs-array">#....</span><span class="hljs-array">#
+</span><span class="hljs-array">#...........</span><span class="hljs-array">#...</span><span class="hljs-array">#.............</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#....</span>#<span class="hljs-array">#.</span><span class="hljs-array">#......</span>#<span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#...</span><span class="hljs-array">#.........</span><span class="hljs-array">#..</span>#<span class="hljs-array">#..</span><span class="hljs-array">#...</span>##<span class="hljs-array">#
+</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#....</span><span class="hljs-array">#.....</span>#<span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>#<span class="hljs-array">#....</span><span class="hljs-array">#...</span>##<span class="hljs-array">#..</span><span class="hljs-array">#.....</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#..</span>##<span class="hljs-array">#....</span><span class="hljs-array">#.</span>#<span class="hljs-array">#......</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span>##<span class="hljs-array">#.</span>##<span class="hljs-array">#.............</span><span class="hljs-array">#
+</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.......</span><span class="hljs-array">#.....</span><span class="hljs-array">#
+</span><span class="hljs-array">#............</span><span class="hljs-array">#....</span><span class="hljs-array">#.</span>#<span class="hljs-array">#..</span><span class="hljs-array">#.....</span>#<span class="hljs-array">#...</span><span class="hljs-array">#...</span>##<span class="hljs-array">#....</span>#<span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span>#<span class="hljs-array">#.</span><span class="hljs-array">#.</span>##<span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span>#<span class="hljs-array">#..</span>#<span class="hljs-array">#......</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span>##<span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#............</span><span class="hljs-array">#............</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#........</span>##<span class="hljs-array">#...</span><span class="hljs-array">#......</span><span class="hljs-array">#.......</span><span class="hljs-array">#........</span>#<span class="hljs-array">#....</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#.....</span><span class="hljs-array">#..</span>#<span class="hljs-array">#.....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>###<span class="hljs-array">#...</span><span class="hljs-array">#........</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span>#<span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#...</span><span class="hljs-array">#.......</span>#<span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span>#<span class="hljs-array">#..</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#..</span>#<span class="hljs-array">#.........</span><span class="hljs-array">#..</span><span class="hljs-array">#.........</span><span class="hljs-array">#...</span>###<span class="hljs-array">#......</span>#<span class="hljs-array">#.....</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#..</span>####<span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#..</span>#<span class="hljs-array">#.</span>#<span class="hljs-array">#........</span><span class="hljs-array">#...</span><span class="hljs-array">#........</span><span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#........</span>#<span class="hljs-array">#.</span>#<span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span>##<span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span>##<span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#.....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>#<span class="hljs-array">#.....</span><span class="hljs-array">#.....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span>#<span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>#<span class="hljs-array">#........</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>#####<span class="hljs-array">#.....</span>##<span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span>#<span class="hljs-array">#.....</span><span class="hljs-array">#....</span><span class="hljs-array">#...</span>#<span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#...</span><span class="hljs-array">#....</span>##<span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#
+</span>#<span class="hljs-array">#.......</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#....</span><span class="hljs-array">#.....</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#........</span><span class="hljs-array">#...</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#..</span><span class="hljs-array">#.........</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#......</span><span class="hljs-array">#....</span>#<span class="hljs-array">#..</span><span class="hljs-array">#....</span><span class="hljs-array">#
+</span><span class="hljs-array">#.........</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span><span class="hljs-array">#..</span>###<span class="hljs-array">#..</span>#<span class="hljs-array">#...</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span>######<span class="hljs-array">#
+</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#....</span>#<span class="hljs-array">#....</span>#<span class="hljs-array">#.</span>#<span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span>#<span class="hljs-array">#.</span>#<span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#...</span>#<span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#......</span>#<span class="hljs-array">#...</span>#<span class="hljs-array">#...</span><span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#
+</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>####<span class="hljs-array">#....</span>#<span class="hljs-array">#..</span>#<span class="hljs-array">#..</span><span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span><span class="hljs-array">#.</span>#<span class="hljs-array">#..</span><span class="hljs-array">#
+</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#........</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#...</span><span class="hljs-array">#...</span>#<span class="hljs-array">#..</span>###<span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#
+</span><span class="hljs-array">#.........</span><span class="hljs-array">#.</span><span class="hljs-array">#........</span><span class="hljs-array">#.........</span><span class="hljs-array">#..</span>###<span class="hljs-array">#..</span>###<span class="hljs-array">#.</span>##<span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#....</span>##<span class="hljs-array">#..</span><span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#...</span><span class="hljs-array">#....</span><span class="hljs-array">#
+</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>#####<span class="hljs-array">#.</span>##<span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#.....</span><span class="hljs-array">#..</span>#<span class="hljs-array">#....</span><span class="hljs-array">#
+</span>#<span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span>#<span class="hljs-array">#.</span><span class="hljs-array">#......</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span>###<span class="hljs-array">#..</span><span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#
+</span><span class="hljs-array">#.</span>##<span class="hljs-array">#.......</span><span class="hljs-array">#......</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span><span class="hljs-array">#...</span><span class="hljs-array">#...</span><span class="hljs-array">#...</span>#<span class="hljs-array">#.</span>#<span class="hljs-array">#.</span>###<span class="hljs-array">#
+</span><span class="hljs-array">#......</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span>##<span class="hljs-array">#.</span><span class="hljs-array">#..</span>#<span class="hljs-array">#...</span><span class="hljs-array">#..</span>#<span class="hljs-array">#..</span><span class="hljs-array">#...</span>###<span class="hljs-array">#
+</span><span class="hljs-array">#....</span><span class="hljs-array">#.....</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span>#<span class="hljs-array">#..</span>#<span class="hljs-array">#....</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>#<span class="hljs-array">#..</span>#<span class="hljs-array">#...</span><span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span>#<span class="hljs-array">#...</span><span class="hljs-array">#.....</span><span class="hljs-array">#......</span><span class="hljs-array">#....</span><span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#...</span><span class="hljs-array">#
+</span><span class="hljs-array">#..........</span>#<span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#........</span>#<span class="hljs-array">#.</span><span class="hljs-array">#......</span><span class="hljs-array">#...</span>##<span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#.</span>##<span class="hljs-array">#.</span><span class="hljs-array">#.......</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span>##<span class="hljs-array">#...</span><span class="hljs-array">#...</span>##<span class="hljs-array">#...</span>#<span class="hljs-array">#.....</span><span class="hljs-array">#..</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#......</span><span class="hljs-array">#.</span>##<span class="hljs-array">#....</span>#<span class="hljs-array">#..</span><span class="hljs-array">#....</span>##<span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>#<span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#......</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span>#<span class="hljs-array">#....</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span>#<span class="hljs-array">#........</span><span class="hljs-array">#
+</span><span class="hljs-array">#...</span><span class="hljs-array">#.......</span>##<span class="hljs-array">#.........</span><span class="hljs-array">#.</span>#<span class="hljs-array">#.</span>##<span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#
+</span><span class="hljs-array">#.......</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>#<span class="hljs-array">#.</span><span class="hljs-array">#.</span>#<span class="hljs-array">#.....</span><span class="hljs-array">#............</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span><span class="hljs-array">#
+</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..........</span>#<span class="hljs-array">#........</span><span class="hljs-array">#..</span>#<span class="hljs-array">#.</span>#<span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#
+</span>#<span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.....</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span>#<span class="hljs-array">#..</span><span class="hljs-array">#.....</span><span class="hljs-array">#..........</span>#<span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#
+</span><span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span><span class="hljs-array">#...</span>#<span class="hljs-array">#......</span><span class="hljs-array">#.</span>###<span class="hljs-array">#.......</span><span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>#<span class="hljs-array">#....</span><span class="hljs-array">#.</span>#<span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span><span class="hljs-array">#.....</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#
+</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.........</span>#<span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span>#<span class="hljs-array">#........</span><span class="hljs-array">#.....</span><span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>#<span class="hljs-array">#......</span><span class="hljs-array">#...</span>#<span class="hljs-array">#..............</span><span class="hljs-array">#...</span>##<span class="hljs-array">#...</span>#<span class="hljs-array">#.</span>#<span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#.......</span><span class="hljs-array">#.</span>##<span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span><span class="hljs-array">#...</span>#<span class="hljs-array">#..</span>#<span class="hljs-array">#......</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>###<span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span><span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>#<span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#...</span>#<span class="hljs-array">#...</span><span class="hljs-array">#.....</span>##<span class="hljs-array">#
+</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#....................................g</span><span class="hljs-array">#
+</span>#################################################<span class="hljs-array">#
+</span>{T&lt;&gt;&lt;&lt;&gt;&lt;^&gt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&gt;&lt;&lt;&lt;&gt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;{Cv&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;^v&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;^&gt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&gt;&gt;&gt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;^&lt;&gt;&gt;&gt;&lt;&lt;^&lt;&gt;&lt;&lt;&gt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;^&gt;&lt;&gt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;^&gt;&gt;&lt;&gt;&gt;&lt;&lt;&lt;&gt;&lt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;vv&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&gt;&lt;&lt;&gt;&gt;^&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&gt;&lt;v&gt;&lt;^&lt;&lt;&lt;&lt;^&gt;&gt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;^&lt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;v&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;v&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;v&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;v&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;^&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;v&lt;&lt;&gt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;^&lt;&lt;&lt;&lt;v&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;v&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;v&lt;&gt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&gt;&gt;&gt;&lt;&lt;&gt;&gt;&lt;&gt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&gt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;v&lt;&lt;&lt;&lt;&lt;&lt;v&lt;&lt;&lt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;^&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;v&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;}&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&gt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;^&gt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;^&lt;&lt;&lt;&gt;&lt;&gt;&gt;&lt;&lt;&gt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&gt;}
+
+</code></pre>
+<ul>
+<li>このケース，ゴールまでに1210310(動作文)かかる
+<ul>
+<li>理論上の最大値の1/10</li>
+</ul>
+</li>
+<li>これよりも長い動作文が必要なケースを作れたという方はご一報ください．</li>
+</ul>
+</li>
+</ul>
+<h3>コンテスト中のジャッジルームにて</h3>
+<ul>
+<li>先ほど書いたように，「動作文のない無限ループが存在しうる」という罠があるにも関わらず，コンテスト開始時に問題文が『「プログラム」は<strong>複数の</strong>「文」からなり，...』となっており，あわてて修正した．</li>
+<li>AtCoder の仕様で問題文を修正すると，&quot;&lt;&quot; や &quot;&gt;&quot; のエスケープが解除されてしまうというトラップがあり，Sample Input 中で使われていた&quot;&lt;&quot; や &quot;&gt;&quot; がぶっ壊れてしまい，更なる対応に追われた．
+<ul>
+<li>基本的にAtCoderで問題文を訂正するときは，AtCoder上から書き換えるのではなく，問題文を再生成してコピペするほうが安全</li>
+</ul>
+</li>
+<li>構文解析＋探索でそれほど内容的には難しくないと考えていたので，想像以上にWAやTLEが多くミスジャッジしてしまっているのではないかとヒヤヒヤしていた．</li>
+<li>上記のトラブルや，WAやTLEの多さからジャッジルームでずっとヤバいヤバい言ってて周囲を苛つかせていたかもしれない．反省している．</li>
+</ul>
+
+  
+  <aside class="social">
+  <a href="http://b.hatena.ne.jp/entry/http://blog.mitaki28.info/1449303228375" class="hatena-bookmark-button" data-hatena-bookmark-title="JAG 夏合宿 2014 Day4 E - AI 解説＋裏話" data-hatena-bookmark-layout="standard-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-url="http://blog.mitaki28.info/1449303228375" data-text="JAG 夏合宿 2014 Day4 E - AI 解説＋裏話" data-dnt="true">Tweet</a>
+  <script type="text/javascript" src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </aside>
+</article>
+
+
+<article>
+  <h1>
+    <a href="/1448288618262">
+      Code Festival 2015 参加記
+    </a>
+  </h1>
+  <aside id="createdAt">
+    created at: <time> 2015-11-23 23:23:38</time>
+  </aside>
+
+  
+  <h2>1日目</h2>
+<h3>起床〜会場到着</h3>
+<p>朝5時起きで会場に向けて出発．</p>
+<p>このとき，事前にアンケートで答えていたバスの予約を2日目のものと勘違いしていて，思いっきりすっぽかしてしまう．</p>
+<p>おかげで，10時ごろに東京駅に到着したあたりで，携帯にスタッフの方から電話がかかってきていたり，Twitterでメンションが飛んできてたりすることに気づいて本番の開始時間を勘違いしてたんじゃないかと非常に焦っていた．</p>
+<p>ご迷惑をおかけしてすみませんでした・・・</p>
+<h3>本戦</h3>
+<p>A, B はまあ解ける．</p>
+<p>C は貪欲を書くも + と - を書き間違えてシャリが無限に増殖していたため 1WA</p>
+<p>D はこの前のARCみたいに累積和使う賢い解法があるんだろうなぁと思いつつ，ぱっと思いつかなかったので LazySegmentTree でとっとと殴り倒す．</p>
+<p>E は出力は高々6パターンしかないことがわかったので，場合分けした．</p>
+<p>F は読んでみても方針が立たなかったのでスルーしてGを解く．</p>
+<p>G は，以前，<a href="http://blog.mitaki28.info/1445277121233">Markdownエディタ</a> を作る過程で，形の違う木の手抜きローリングハッシュが一致する木（違う形状で行きがけの順序が一致する木）にはどんなのがあるのだろうということを少しだけ考えていたので，問題はすんなり頭に入ってくる．その後，$O(n^3)$のDPをわりとスムーズに思いついてAC．途中 <code>int</code> 同士の掛け算がオーバーフローしてるのに気づかなくて15分ぐらい無駄にしたのがもったいなかった・・・</p>
+<p>結局，残り1時間半を費やしても H が解けずにそのまま終了．最終的に思いついていた方針は，解説とは違っていたので，だめかなと思っていたけれど，本番後に書いてみたところ通ったので，かなり惜しいところまで解けていた．本番中に通したかった．</p>
+<p>最終的な順位は27th．6完の中では2番目にペナルティが少なかったらしい．正直，凍結後に結構みんな F を投げていたし，31th以降に放り出されると思っていたので本当に運がよかった．</p>
+<h3>トークライブ</h3>
+<p>チーム Unagi のトークライブと @laycrs さんのトークライブを聞いた．</p>
+<p>ICFPCは毎年参加したいと思いつつ，問題文の長さで心が折れてしまっているので，来年こそは参加したいと思った．</p>
+<p>@laycrs さんのトークライブを聞いて，昔作問した時のことを思い出して懐かしんでいた．そういえば，あのときの解説まだ書いてないな・・・</p>
+<h3>エキシビション</h3>
+<p>途中， @Mi_sawa さんがエディタ上で解説し始めたり，@yosupot さんが画面使って散々遊びつつサラッとAを通していたりしておもしろかった．</p>
+<p>そして，終了直前にりんごさんがまさかの全完．やばすぎる．</p>
+<h3>解散〜就寝</h3>
+<p>メインディッシュを食べそこねてしまって，お腹が空いていたのでホテルのロビーにいたメンバーでマクドナルドに行く．そして，就寝．</p>
+<h2>2日目</h2>
+<h3>朝プロ</h3>
+<p>寝坊して結局10時に会場に着く．とりあえずHardのAはすぐ通したが，残り15分でBを解くのは無理ゲーな気がしたので，そのまま諦める．</p>
+<h3>トークセッション</h3>
+<p>ライトニングトークとりんごさんのトークセッションを聞く．ライトニングトークでは @uwi さんを初めてリアルで目撃した．りんごさんのトークセッションは去年にも増してカオスだった．</p>
+<h3>リレー</h3>
+<p>うちのチームは2人組を作って2問ずつ担当するという作戦を取った．僕は @imulan さんと組んでD, Iを担当．Dはすぐ解けたが，Iが解けない．$O(n^5)$のDPしか思いつかず，悩んでいるところを @qnighy さんに助けてもらう（ちょうど同じタイミングで @nikollson さんも @qnighy さんと同じ解法を話していた気がする）．結局，僕は聞いた解法を実装しただけだったけど，最終的な順位は7th．チームメンバーたちに感謝．</p>
+<h3>解散〜帰宅</h3>
+<p>すこし時間があったので，関西勢で適当にご飯を食べに行く．目黒周辺をうろうろしていて見つけたイタリアンの店でピザとサラダを軽く食べる．</p>
+<p>帰りの新幹線の中で暇だったので本戦 H, I と 朝プロ Hard の B を通す．</p>
+<p>その後，無事家に帰る．</p>
+
+  
+  <aside class="social">
+  <a href="http://b.hatena.ne.jp/entry/http://blog.mitaki28.info/1448288618262" class="hatena-bookmark-button" data-hatena-bookmark-title="Code Festival 2015 参加記" data-hatena-bookmark-layout="standard-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-url="http://blog.mitaki28.info/1448288618262" data-text="Code Festival 2015 参加記" data-dnt="true">Tweet</a>
+  <script type="text/javascript" src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </aside>
+</article>
+
+
+<article>
+  <h1>
+    <a href="/1447078746296">
+      永続赤黒木を実装した時のメモ
+    </a>
+  </h1>
+  <aside id="createdAt">
+    created at: <time> 2015-11-09 23:19:06</time>
+  </aside>
+
+  
+  <h2>はじめに</h2>
+<p><a href="http://www.ioi-jp.org/camp/2012/2012-sp-tasks/2012-sp-day4-copypaste-slides.pdf">Copy&amp;Paste の解説スライド</a>を読んで，永続赤黒木を実装してみました．</p>
+<p>merge-split ベースの赤黒木の実装は insert-erase ベースのものと比較するとかなりシンプルで，1重回転だけで実装できますし，行数的にもRBST+50〜60行で実装できます．</p>
+<p>ただし，上のスライドだけだと，なんでこれで動くのかを結構考察する必要があったり，split に関しては擬似コードどおりに書いても正しく動かなかったりするので，備忘録も兼ねてメモしておきます．</p>
+<h2>実装前に理解しておくべきこと</h2>
+<ul>
+<li>P.11 の平衝条件はしっかり頭に叩き込んでおきましょう．
+<ol>
+<li>各ノードには赤か黒の色がついている</li>
+<li>根は黒</li>
+<li>葉は黒</li>
+<li>赤いノードは隣接しない</li>
+<li>根から葉までのパス上の黒いノード数は一定</li>
+</ol>
+</li>
+<li>さらに，上記の条件から以下のことが導けます
+<ol start="6">
+<li>条件3,5 から，葉以外のノードは必ず2つの子を持つ
+<ul>
+<li>持たないとすれば，条件5に反する</li>
+<li>この性質を覚えておくと，実装上 null チェックの数が少なくて済みます</li>
+</ul>
+</li>
+<li>変更によって根が赤になった場合，単純に根を黒に戻せば良い．
+<ul>
+<li>条件4, 5は保たれるので問題ない</li>
+</ul>
+</li>
+</ol>
+</li>
+<li>このアルゴリズムで値を持つのは葉だけ
+<ul>
+<li>一般に出回っているRBSTとは違うので注意しましょう．</li>
+</ul>
+</li>
+<li>各ノードはランクを持つ（P. 13）
+<ul>
+<li>葉から自身までの黒いノードの数．<strong>ただし自分自身は含まない．</strong></li>
+<li>条件5 から，<code>a.l.rank + is_black(a.l.color)</code> と <code>a.r.rank + is_black(a.r.color)</code> は一致する．</li>
+<li>したがって，計算時は左右のどちらの子を使って計算してもよい．</li>
+</ul>
+</li>
+</ul>
+<h2>ノードの生成</h2>
+<p>葉と中間ノードの性質が全く異なるので，別々の生成関数を用意しておくと便利です．</p>
+<pre><code>function <span class="hljs-function"><span class="hljs-title">leaf</span><span class="hljs-params">(value)</span></span>
+    <span class="hljs-tag">a</span> := new Node.
+    <span class="hljs-tag">a</span><span class="hljs-class">.color</span> := 黒.
+    <span class="hljs-tag">a</span><span class="hljs-class">.size</span> := <span class="hljs-number">1</span>.
+    <span class="hljs-tag">a</span><span class="hljs-class">.rank</span> := <span class="hljs-number">0</span>.
+    <span class="hljs-tag">a</span><span class="hljs-class">.value</span> := value.
+    <span class="hljs-tag">a</span><span class="hljs-class">.l</span> := null.
+    <span class="hljs-tag">a</span><span class="hljs-class">.r</span> := null.
+    return <span class="hljs-tag">a</span>.
+
+function <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(l, r, color)</span></span>
+    <span class="hljs-tag">a</span> := new Node.
+    <span class="hljs-tag">a</span><span class="hljs-class">.color</span> := <span class="hljs-attribute">color</span>.
+    <span class="hljs-tag">a</span><span class="hljs-class">.size</span> := l<span class="hljs-class">.size</span> + r<span class="hljs-class">.size</span>.
+    <span class="hljs-tag">a</span><span class="hljs-class">.rank</span> := l<span class="hljs-class">.rank</span> + (<span class="hljs-number">1</span> <span class="hljs-keyword">if</span> l<span class="hljs-class">.color</span> = 黒 <span class="hljs-keyword">else</span> <span class="hljs-number">0</span>).
+    <span class="hljs-tag">a</span><span class="hljs-class">.l</span> := l.
+    <span class="hljs-tag">a</span><span class="hljs-class">.r</span> := r.
+    return <span class="hljs-tag">a</span>.
+</code></pre>
+<h2>Merge</h2>
+<p>Merge 操作は P.17〜22 に書かれています．基本的には，P.18, 19 の擬似コードを実装すれば動きます．ただし，（上と同様）の部分は，左右反転して実装する必要があることに注意してください．全部書くと以下のようになります．</p>
+<pre><code>function <span class="hljs-function"><span class="hljs-title">mergeSub</span><span class="hljs-params">(a, b)</span></span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-tag">a</span><span class="hljs-class">.rank</span> &lt; <span class="hljs-tag">b</span>.rank):
+        c := <span class="hljs-function"><span class="hljs-title">mergeSub</span><span class="hljs-params">(a, b.l)</span></span>.
+        <span class="hljs-keyword">if</span> (<span class="hljs-tag">b</span><span class="hljs-class">.color</span> = 黒 and c<span class="hljs-class">.color</span> = 赤 and c<span class="hljs-class">.l</span><span class="hljs-class">.color</span> = 赤):
+            <span class="hljs-keyword">if</span> (<span class="hljs-tag">b</span><span class="hljs-class">.r</span><span class="hljs-class">.color</span> = 黒):
+                return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(c.l, node(c.r, b.r, 赤)</span></span>, 黒).
+            <span class="hljs-keyword">else</span>:
+                return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(node(c.l, c.r, 黒)</span></span>, <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(b.r.l, b.r.r, 黒)</span></span>, 赤).
+        <span class="hljs-keyword">else</span>:
+            return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(c, b.r, b.color)</span></span>.
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-tag">a</span><span class="hljs-class">.rank</span> &gt; <span class="hljs-tag">b</span>.rank):
+        c := <span class="hljs-function"><span class="hljs-title">mergeSub</span><span class="hljs-params">(a.r, b)</span></span>.
+        <span class="hljs-keyword">if</span> (<span class="hljs-tag">a</span><span class="hljs-class">.color</span> = 黒 and c<span class="hljs-class">.color</span> = 赤 and c<span class="hljs-class">.r</span><span class="hljs-class">.color</span> = 赤):
+            <span class="hljs-keyword">if</span> (<span class="hljs-tag">a</span><span class="hljs-class">.l</span><span class="hljs-class">.color</span> = 黒):
+                return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(node(a.l, c.l, 赤)</span></span>, c<span class="hljs-class">.r</span>, 黒).
+            <span class="hljs-keyword">else</span>:
+                return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(node(a.l.l, a.l.r, 黒)</span></span>, <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(c.l, c.r, 黒)</span></span>, 赤).
+        <span class="hljs-keyword">else</span>:
+            return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(a.l, c, a.color)</span></span>.
+    <span class="hljs-keyword">else</span>:
+        return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(a, b, 赤)</span></span>. 
+</code></pre>
+<p>この節の以降では，実装時に，疑問に思ったことをメモしておきます．興味がなければ読み飛ばしてもらって構いません．</p>
+<h3>場合分けについて</h3>
+<p>P. 18 の実装では，<code>a.rank &lt; b.rank</code>（<code>a.rank &gt; b.rank</code>） が確定したあとは，P.20, 21の2パターンとそれ以外の場合しか場合分けをしていません．実は，これで，条件を満たすために必要な操作がすべて列挙されています．</p>
+<h4>null チェックを行っていない点</h4>
+<p>この実装では，<code>b</code> の子および <code>c</code> の子の色を参照していますが，null チェックは必要ありません．</p>
+<p>まず，<code>b</code> の子についてですが，<code>a.rank &lt; b.rank</code> が成り立っており<code>a.rank &gt;= 0</code> であることから <code>b.rank &gt;= 1</code>であることがわかります．したがって，<code>b</code>は葉ではなく，条件6から，葉以外のノードは必ず2つの子を持つので，null チェックは不要です．</p>
+<p>また，<code>c</code> については，少なくとも1つ赤のノードを挿入することから <code>c</code> 自身が null になることはなく，<code>c</code> を作成する時点で，<code>a</code> も <code>b</code> も null になり得ない（少なくとも葉まで到達した段階で <code>a.rank == b.rank</code> となる）ことから，<code>c</code> の子についても null チェックは不要であることがわかります．</p>
+<h4><code>c</code> が赤の場合は一旦そのままにしている点</h4>
+<p><code>b</code> が赤のノードの場合に，そのまま <code>c</code> を左の子とした場合に，赤のノードが連続し，条件4が満たされないままになる可能性があるように思えるかもしれません．</p>
+<p>しかし，実際には以下の2通りしかなく，問題ありません．</p>
+<ol>
+<li><code>b</code> が根のとき，条件7から<code>b</code>を黒にすれば平衝条件を満たす．</li>
+<li><code>b</code> が根ではないとき，<code>b</code> と <code>b</code> の親の間には条件4が成り立っていることから，<code>b</code>の親は必ず黒であり，この場合，<code>b</code> の親の段階で平衝条件を満たすように変更が加わるため，問題ない．</li>
+</ol>
+<h4><code>c</code> が赤の場合， <code>c</code> の右の子は黒で確定する点</h4>
+<p>まず，重要なポイントとして，<code>a</code> と <code>b</code> の rank が突然入れ替わることはないため，最初に <code>a.rank &lt; b.rank</code> が成り立てば，<code>a.rank == b.rank</code> が成り立つまでは，常に，<code>a.rank &lt; b.rank</code> が再帰的に成り立ちます．つまり，<code>a.rank &lt; b.rank</code> の場合は，再帰的に <code>b</code> の左側の子に対して，<code>a</code> をマージする操作が繰り返されることになります．</p>
+<p>さて，<code>c</code> が赤である場合を列挙してみると，</p>
+<ol>
+<li><code>c</code> が <code>a.rank == b.rank</code> のケースで新たに挿入されたノードの場合， rank の定義から，<code>a.rank == b.rank</code> となるとき， <code>b</code> は常に黒のノードなので <code>c</code> の右の子は黒．</li>
+<li><code>c</code> が P.21 のケースで赤に変更されたノードの場合，右の子は黒．(実際には左の子も黒なのでこのケースが問題になることはない)</li>
+<li><code>a &lt; b.l.rank</code> で，<code>a</code> が <code>b.l.l</code> にマージされ，なおかつ<code>b.l.color == RED</code> のとき，<code>c.r == b.l.r</code> であり，条件4から <code>b.l.r</code> は必ず黒．</li>
+</ol>
+<h2>Split</h2>
+<p><strong>split 操作は，P. 24 の擬似コードをそのまま実装しても正しく動きません．</strong> 正確には，以下の擬似コードを実装する必要があります．</p>
+<pre><code>function <span class="hljs-function"><span class="hljs-title">split</span><span class="hljs-params">(a, k)</span></span>
+    <span class="hljs-keyword">if</span> (k = <span class="hljs-number">0</span>):
+        return &lt;null, <span class="hljs-function"><span class="hljs-title">asRoot</span><span class="hljs-params">(a)</span></span>&gt;.
+    <span class="hljs-keyword">if</span> (k = <span class="hljs-tag">a</span>.size):
+        return &lt;<span class="hljs-function"><span class="hljs-title">asRoot</span><span class="hljs-params">(a)</span></span>, null&gt;.
+    <span class="hljs-keyword">if</span> (k &lt; <span class="hljs-tag">a</span><span class="hljs-class">.l</span><span class="hljs-class">.size</span>):
+        &lt;L, R&gt; := <span class="hljs-function"><span class="hljs-title">split</span><span class="hljs-params">(a.l, k)</span></span>.
+        return &lt;L, <span class="hljs-function"><span class="hljs-title">merge</span><span class="hljs-params">(R, asRoot(a.r)</span></span>)&gt;.
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (k &gt; <span class="hljs-tag">a</span><span class="hljs-class">.l</span><span class="hljs-class">.size</span>):
+        &lt;L, R&gt; := <span class="hljs-function"><span class="hljs-title">split</span><span class="hljs-params">(a.r, k - a.l.size)</span></span>.
+        return &lt;<span class="hljs-function"><span class="hljs-title">merge</span><span class="hljs-params">(asRoot(a.l)</span></span>, L), R&gt;.
+    <span class="hljs-keyword">else</span>:
+        return &lt;<span class="hljs-function"><span class="hljs-title">asRoot</span><span class="hljs-params">(a.l)</span></span>, <span class="hljs-function"><span class="hljs-title">asRoot</span><span class="hljs-params">(a.r)</span></span>&gt;. 
+        
+function <span class="hljs-function"><span class="hljs-title">asRoot</span><span class="hljs-params">(a)</span></span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-tag">a</span> is null):
+        return null.
+    <span class="hljs-keyword">if</span> (<span class="hljs-tag">a</span><span class="hljs-class">.color</span> = 黒):
+        return <span class="hljs-tag">a</span>.
+    <span class="hljs-keyword">else</span>:
+        return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(a.l, a.r, 黒)</span></span>.
+</code></pre>
+<p>正しく動かない原因は，条件2を満たさないためです．<code>a.l</code>, <code>a.r</code> は <code>a</code> から切り離した段階で独立した木になるため，戻り値として戻す，または，mergeする前の段階で，条件7を使って，根を黒にしておく必要があります．</p>
+<h2>計算量について</h2>
+<ul>
+<li>merge: $O(|a.rank - b.rank|)$</li>
+<li>split: $O(\log n)$</li>
+</ul>
+<p>RBSTと比較すると，葉にしか値を持たなかったり，追加の情報を保持しないといけなかったりと，定数倍が重そうなイメージですが，merge の計算量が$O(|a.rank - b.rank|)$なので，実際には insert や erase の操作のように似たような rank の木をくっつける場合には RBST より高速に動作する・・・はず．また，merge が$O(|a.rank - b.rank|)$なおかげで，線形時間で初期構築できます．(P.26参照)</p>
+<p>あと，split において，merge を何回も呼び出しているのに $O(\log n)$ になるのは，非直感的かもしれません．split の操作は，再帰の各段階において，</p>
+<ul>
+<li>左の部分木を <code>L</code> に merge する</li>
+<li>右の部分木を <code>R</code> に merge する</li>
+</ul>
+<p>のいずれかの操作を繰り返し行っているものと考えることができます．このとき，部分木は rank の小さい順に merge されていくため，マージの計算量が$O(|a.rank - b.rank|)$であることから，$O(\log n)$になります．（$1,2,5, \ldots \log n$ のようなソート済みの列があった時に隣接する要素の差の和は $O(\log n)$ にしかなりません．）</p>
+
+  
+  <aside class="social">
+  <a href="http://b.hatena.ne.jp/entry/http://blog.mitaki28.info/1447078746296" class="hatena-bookmark-button" data-hatena-bookmark-title="永続赤黒木を実装した時のメモ" data-hatena-bookmark-layout="standard-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-url="http://blog.mitaki28.info/1447078746296" data-text="永続赤黒木を実装した時のメモ" data-dnt="true">Tweet</a>
+  <script type="text/javascript" src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </aside>
+</article>
+
+
+<article>
+  <h1>
+    <a href="/1446205599273">
+      永続 RBST を撃墜するケース
+    </a>
+  </h1>
+  <aside id="createdAt">
+    created at: <time> 2015-10-30 20:46:39</time>
+  </aside>
+
+  
+  <h2>背景</h2>
+<p><a href="http://yosupo.hatenablog.com/entry/2015/10/29/222536">RBSTはコピー可能は嘘という疑惑</a> が興味深かったので僕もいろいろ試してみたところ，要素数 $n$ に対してそこそこの確率で木の高さが $n/4$ 程度になるクエリのパターンを見つけました．</p>
+<h2>テストケース</h2>
+<p><a href="http://yosupo.hatenablog.com/entry/2015/10/29/222536">RBSTはコピー可能は嘘という疑惑</a> のテストケースに対して，一旦 split してそのまま merge するという一見なんの意味もない操作を付け加えただけです．なんでこれで劇的にバランスが悪くなるのか僕にもわかりません．</p>
+<pre><code class="language-c++"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span> </span>{
+  RBST&lt;Value&gt; tr; 
+  tr = tr.insert(<span class="hljs-number">0</span>, <span class="hljs-number">1</span>); <span class="hljs-comment">//trは1ノード</span>
+
+  srand(time(<span class="hljs-literal">nullptr</span>)); <span class="hljs-comment">//このブロックは乱数を適当に消費するためにあります</span>
+  <span class="hljs-keyword">int</span> rn = rand() % <span class="hljs-number">10000</span>;
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; rn; i++) {
+    <span class="hljs-keyword">int</span> sz = tr.count();
+    tr = tr.merge(tr); 
+    tr = tr.split(sz).first; <span class="hljs-comment">//同じものをくっつけて分離するだけの意味のない動作</span>
+  }
+  <span class="hljs-built_in">cout</span> &lt;&lt; tr.count() &lt;&lt; endl;
+  assert(tr.count() == <span class="hljs-number">1</span>);
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">20000</span>; i++) {
+    <span class="hljs-keyword">int</span> sz = tr.count();
+    <span class="hljs-built_in">cout</span> &lt;&lt; sz &lt;&lt; endl;
+    RBST&lt;Value&gt; tr1, tr2;
+    tie(tr, ignore) = tr.split(tr.count() / <span class="hljs-number">2</span> + <span class="hljs-number">1</span>);
+    tie(tr1, tr2) = tr.split(tr.count() / <span class="hljs-number">2</span> + <span class="hljs-number">1</span>); <span class="hljs-comment">//いったん分離して</span>
+    tr = tr1.merge(tr2);  <span class="hljs-comment">// そのままくっつける</span>
+    tr = tr.merge(tr);
+    <span class="hljs-built_in">printf</span>(<span class="hljs-string">"%d\n"</span>, tr.max_depth());
+  }
+
+  <span class="hljs-comment">//ここでtrはバランスが崩れまくっている(ことがある)はず</span>
+  <span class="hljs-built_in">printf</span>(<span class="hljs-string">"%d\n"</span>, tr.max_depth());
+    
+  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;  
+}
+</code></pre>
+<h2>可視化</h2>
+<p>試しに，木のバランスが露骨に悪くなった時の形状を出力してみました．2本の長いパスのいずれかに頂点が集中してしまっている状態のようです．</p>
+<p><img src="/upload/rbst.dot.png" alt="rbst"></p>
+
+  
+  <aside class="social">
+  <a href="http://b.hatena.ne.jp/entry/http://blog.mitaki28.info/1446205599273" class="hatena-bookmark-button" data-hatena-bookmark-title="永続 RBST を撃墜するケース" data-hatena-bookmark-layout="standard-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-url="http://blog.mitaki28.info/1446205599273" data-text="永続 RBST を撃墜するケース" data-dnt="true">Tweet</a>
+  <script type="text/javascript" src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </aside>
+</article>
+
+
+<nav class="linear">
+  <ul>
+    
+    <li class="prev">
+      <a href="/1445277121233">&lt;&lt; Markdown の差分更新を実装してみた</a>
+    </li>
+    
+  </ul>
+</nav>
+</main>
+
+    </div>
+
+    <footer>
+      &copy; mitaki28.info All Rights Reserved.
+    </footer>
+    <script type="text/javascript" async
+            src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML">
+    </script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+      tex2jax: {
+      inlineMath: [['$','$'], ['\\(','\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      }
+      });
+    </script>
+  </body>
+</html>

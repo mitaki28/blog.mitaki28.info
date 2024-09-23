@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Festival 2015 参加記 | mitaki28.info blog</title>
+    <link rel="stylesheet" type="text/css" href="/css/normalize/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="/css/highlight/github.css" />
+    <link rel="stylesheet" type="text/css" href="/css/base.css" />
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">mitaki28.info blog</a></h1>
+      <nav>
+	    <ul>
+	  <li><a href="/">INDEX</a></li>
+	  <li><a href="/list">LIST</a></li>
+	</ul>
+      </nav>
+    </header>
+
+    <div id="content">
+    
+
+<main>
+<article>
+  <h1>
+    <a href="/1448288618262">
+      Code Festival 2015 参加記
+    </a>
+  </h1>
+  <aside id="createdAt">
+    created at: <time> 2015-11-23 23:23:38</time>
+  </aside>
+
+  
+  <h2>1日目</h2>
+<h3>起床〜会場到着</h3>
+<p>朝5時起きで会場に向けて出発．</p>
+<p>このとき，事前にアンケートで答えていたバスの予約を2日目のものと勘違いしていて，思いっきりすっぽかしてしまう．</p>
+<p>おかげで，10時ごろに東京駅に到着したあたりで，携帯にスタッフの方から電話がかかってきていたり，Twitterでメンションが飛んできてたりすることに気づいて本番の開始時間を勘違いしてたんじゃないかと非常に焦っていた．</p>
+<p>ご迷惑をおかけしてすみませんでした・・・</p>
+<h3>本戦</h3>
+<p>A, B はまあ解ける．</p>
+<p>C は貪欲を書くも + と - を書き間違えてシャリが無限に増殖していたため 1WA</p>
+<p>D はこの前のARCみたいに累積和使う賢い解法があるんだろうなぁと思いつつ，ぱっと思いつかなかったので LazySegmentTree でとっとと殴り倒す．</p>
+<p>E は出力は高々6パターンしかないことがわかったので，場合分けした．</p>
+<p>F は読んでみても方針が立たなかったのでスルーしてGを解く．</p>
+<p>G は，以前，<a href="http://blog.mitaki28.info/1445277121233">Markdownエディタ</a> を作る過程で，形の違う木の手抜きローリングハッシュが一致する木（違う形状で行きがけの順序が一致する木）にはどんなのがあるのだろうということを少しだけ考えていたので，問題はすんなり頭に入ってくる．その後，$O(n^3)$のDPをわりとスムーズに思いついてAC．途中 <code>int</code> 同士の掛け算がオーバーフローしてるのに気づかなくて15分ぐらい無駄にしたのがもったいなかった・・・</p>
+<p>結局，残り1時間半を費やしても H が解けずにそのまま終了．最終的に思いついていた方針は，解説とは違っていたので，だめかなと思っていたけれど，本番後に書いてみたところ通ったので，かなり惜しいところまで解けていた．本番中に通したかった．</p>
+<p>最終的な順位は27th．6完の中では2番目にペナルティが少なかったらしい．正直，凍結後に結構みんな F を投げていたし，31th以降に放り出されると思っていたので本当に運がよかった．</p>
+<h3>トークライブ</h3>
+<p>チーム Unagi のトークライブと @laycrs さんのトークライブを聞いた．</p>
+<p>ICFPCは毎年参加したいと思いつつ，問題文の長さで心が折れてしまっているので，来年こそは参加したいと思った．</p>
+<p>@laycrs さんのトークライブを聞いて，昔作問した時のことを思い出して懐かしんでいた．そういえば，あのときの解説まだ書いてないな・・・</p>
+<h3>エキシビション</h3>
+<p>途中， @Mi_sawa さんがエディタ上で解説し始めたり，@yosupot さんが画面使って散々遊びつつサラッとAを通していたりしておもしろかった．</p>
+<p>そして，終了直前にりんごさんがまさかの全完．やばすぎる．</p>
+<h3>解散〜就寝</h3>
+<p>メインディッシュを食べそこねてしまって，お腹が空いていたのでホテルのロビーにいたメンバーでマクドナルドに行く．そして，就寝．</p>
+<h2>2日目</h2>
+<h3>朝プロ</h3>
+<p>寝坊して結局10時に会場に着く．とりあえずHardのAはすぐ通したが，残り15分でBを解くのは無理ゲーな気がしたので，そのまま諦める．</p>
+<h3>トークセッション</h3>
+<p>ライトニングトークとりんごさんのトークセッションを聞く．ライトニングトークでは @uwi さんを初めてリアルで目撃した．りんごさんのトークセッションは去年にも増してカオスだった．</p>
+<h3>リレー</h3>
+<p>うちのチームは2人組を作って2問ずつ担当するという作戦を取った．僕は @imulan さんと組んでD, Iを担当．Dはすぐ解けたが，Iが解けない．$O(n^5)$のDPしか思いつかず，悩んでいるところを @qnighy さんに助けてもらう（ちょうど同じタイミングで @nikollson さんも @qnighy さんと同じ解法を話していた気がする）．結局，僕は聞いた解法を実装しただけだったけど，最終的な順位は7th．チームメンバーたちに感謝．</p>
+<h3>解散〜帰宅</h3>
+<p>すこし時間があったので，関西勢で適当にご飯を食べに行く．目黒周辺をうろうろしていて見つけたイタリアンの店でピザとサラダを軽く食べる．</p>
+<p>帰りの新幹線の中で暇だったので本戦 H, I と 朝プロ Hard の B を通す．</p>
+<p>その後，無事家に帰る．</p>
+
+  
+  <aside class="social">
+  <a href="http://b.hatena.ne.jp/entry/http://blog.mitaki28.info/1448288618262" class="hatena-bookmark-button" data-hatena-bookmark-title="Code Festival 2015 参加記" data-hatena-bookmark-layout="standard-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-url="http://blog.mitaki28.info/1448288618262" data-text="Code Festival 2015 参加記" data-dnt="true">Tweet</a>
+  <script type="text/javascript" src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </aside>
+</article>
+
+<nav class="linear">
+  <ul>
+    
+    <li class="prev">
+      <a href="/1447078746296">&lt;&lt; 永続赤黒木を実装した時のメモ</a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/1449303228375">JAG 夏合宿 2014 Day4 E - AI 解説＋裏話 &gt;&gt;</a>
+    </li>
+    
+  </ul>
+</nav>
+</main>
+
+    </div>
+
+    <footer>
+      &copy; mitaki28.info All Rights Reserved.
+    </footer>
+    <script type="text/javascript" async
+            src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML">
+    </script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+      tex2jax: {
+      inlineMath: [['$','$'], ['\\(','\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      }
+      });
+    </script>
+  </body>
+</html>

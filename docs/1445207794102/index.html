@@ -1,0 +1,229 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Visual C++ で SQLite を使う | mitaki28.info blog</title>
+    <link rel="stylesheet" type="text/css" href="/css/normalize/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="/css/highlight/github.css" />
+    <link rel="stylesheet" type="text/css" href="/css/base.css" />
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">mitaki28.info blog</a></h1>
+      <nav>
+	    <ul>
+	  <li><a href="/">INDEX</a></li>
+	  <li><a href="/list">LIST</a></li>
+	</ul>
+      </nav>
+    </header>
+
+    <div id="content">
+    
+
+<main>
+<article>
+  <h1>
+    <a href="/1445207794102">
+      Visual C++ で SQLite を使う
+    </a>
+  </h1>
+  <aside id="createdAt">
+    created at: <time> 2015-10-19 07:36:34</time>
+  </aside>
+
+  
+  <h2>まとめ</h2>
+<p>意外と情報が少なくて苦労した．結論としては，SQLite 公式のソースコードを落としてきて，ビルド用のプロジェクトを作ってリンクするのが楽．</p>
+<p>あと，ついでに C++ 用のシンプルなラッパーを書いた．</p>
+<p><strong>追記:</strong> この記事を書いた後で，<a href="https://github.com/SRombauts/SQLiteCpp">SQLiteCpp</a> が存在していることに気づいた・・・ まあ，ちょっとSQLiteを操作したいだけで，依存ライブラリ増やしたくないって場合にはこの記事の内容が役に立つかもしれません．</p>
+<h2>手順</h2>
+<p>SQLite ビルド用のプロジェクトを <code>sqlite</code>, SQLite を使いたいプロジェクトを <code>app</code> とします．これらのプロジェクトは同じソリューションの中にあるものとします．</p>
+<ol>
+<li><a href="https://sqlite.org/download.html">公式ページ</a>からソースコードをダウンロード
+<ul>
+<li>Windows 向けのバイナリも配布されているが，DLLを使うための設定をする手間を考えるとあんまり変わらない</li>
+</ul>
+</li>
+<li><code>sqlite3.c</code>, <code>sqlite3.h</code>, <code>sqlite3ext.h</code> を <code>sqlite</code> に追加</li>
+<li><code>sqlite</code> の構成の種類を <code>.exe</code> から <code>.lib</code> に変更する</li>
+<li><code>sqlite</code> のコンパイルオプションに <code>/sdl-</code> を付加
+<ul>
+<li>これをつけないとエラーになってコンパイルできない</li>
+</ul>
+</li>
+<li><code>app</code> のインクルードディレクトリに <code>sqlite</code> のディレクトリを追加</li>
+<li><code>app</code> の参照プロジェクトに <code>sqlite</code> を追加</li>
+</ol>
+<h2>C++用のラッパー</h2>
+<p>これで，<code>app</code> の中で <a href="https://www.sqlite.org/cintro.html">SQLite の C/C++ API</a>を呼び出せるようになるのですが，そのままだと，エラーチェックやcloseの処理が面倒なので，簡単なラッパーを書きました．SQL 直書きしかできないけど，簡単な用途ならこれで十分でしょう．ただし，フォーマットライブラリ（<a href="https://github.com/c42f/tinyformat">tinyformat</a>など）はあったほうが楽です．</p>
+<p>※当然ですが，SQLインジェクション対策とかは何もやってないので，Webサービスとかで使うのはやめましょう．</p>
+<pre><code class="language-c++"><span class="hljs-comment">/*
+  Simple wrapper for SQLite3
+  
+  This code is Public Domain
+  
+  **CAUTION**
+  1. No Warrantry
+  2. This code is *NOT* safe against SQL Injection.
+  3. This code can *NOT* handle BLOB or TEXT including '\0'.
+  4. You should *NOT* use this for production.
+ */</span> 
+
+<span class="hljs-comment">// ============== ここから ヘッダー ===========</span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;cassert&gt;</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;iostream&gt;</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;vector&gt;</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;string&gt;</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;map&gt;</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;memory&gt;</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdexcept&gt;</span></span>
+
+<span class="hljs-preprocessor">#<span class="hljs-keyword">include</span> <span class="hljs-string">"sqlite3.h"</span></span>
+
+<span class="hljs-keyword">struct</span> SQLite3 {
+  <span class="hljs-keyword">typedef</span> <span class="hljs-built_in">std</span>::<span class="hljs-built_in">shared_ptr</span>&lt;<span class="hljs-built_in">std</span>::<span class="hljs-built_in">string</span>&gt; Value;
+  <span class="hljs-keyword">typedef</span> <span class="hljs-built_in">std</span>::<span class="hljs-built_in">vector</span>&lt;<span class="hljs-built_in">std</span>::pair&lt;<span class="hljs-built_in">std</span>::<span class="hljs-built_in">string</span>, Value&gt;&gt; Row;
+  sqlite3 *db;
+  SQLite3(<span class="hljs-keyword">const</span> <span class="hljs-built_in">std</span>::<span class="hljs-built_in">string</span> &amp;dbName);
+  ~SQLite3();
+  <span class="hljs-built_in">std</span>::<span class="hljs-built_in">vector</span>&lt;Row&gt; exec(<span class="hljs-keyword">const</span> <span class="hljs-built_in">std</span>::<span class="hljs-built_in">string</span> &amp;sql);
+};
+
+<span class="hljs-comment">// ============== ここから ライブラリ ===========</span>
+
+SQLite3::SQLite3(<span class="hljs-keyword">const</span> <span class="hljs-built_in">std</span>::<span class="hljs-built_in">string</span> &amp;dbName) : db(<span class="hljs-literal">nullptr</span>) {
+  <span class="hljs-keyword">int</span> err = sqlite3_open(dbName.c_str(), &amp;db);
+  <span class="hljs-keyword">if</span> (err != SQLITE_OK) {
+    <span class="hljs-built_in">std</span>::<span class="hljs-built_in">string</span> errstr = sqlite3_errmsg(db);
+    sqlite3_close_v2(db);
+    db = <span class="hljs-literal">nullptr</span>;
+    <span class="hljs-keyword">throw</span> <span class="hljs-built_in">std</span>::runtime_error(errstr);
+  }
+}
+  
+SQLite3::~SQLite3() {
+  sqlite3_close_v2(db);
+  db = <span class="hljs-literal">nullptr</span>;
+}
+  
+<span class="hljs-built_in">std</span>::<span class="hljs-built_in">vector</span>&lt;SQLite3::Row&gt; SQLite3::exec(<span class="hljs-keyword">const</span> <span class="hljs-built_in">std</span>::<span class="hljs-built_in">string</span> &amp;sql) {
+  <span class="hljs-keyword">char</span> *errmsg = <span class="hljs-literal">nullptr</span>;
+  <span class="hljs-keyword">auto</span> callback = [](<span class="hljs-keyword">void</span> *result_, <span class="hljs-keyword">int</span> argc,
+                     <span class="hljs-keyword">char</span> **argv, <span class="hljs-keyword">char</span> **colNames) {
+    <span class="hljs-built_in">std</span>::<span class="hljs-built_in">vector</span>&lt;Row&gt; *ret = <span class="hljs-keyword">reinterpret_cast</span>&lt;<span class="hljs-built_in">std</span>::<span class="hljs-built_in">vector</span>&lt;Row&gt; *&gt;(result_);
+    ret-&gt;push_back(Row());
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; argc; i++) {
+      <span class="hljs-keyword">if</span> (argv[i] != <span class="hljs-literal">nullptr</span>) {
+        ret-&gt;back()
+          .push_back(<span class="hljs-built_in">std</span>::make_pair(colNames[i],
+                                    Value(<span class="hljs-keyword">new</span> <span class="hljs-built_in">std</span>::<span class="hljs-built_in">string</span>(argv[i]))));
+      } <span class="hljs-keyword">else</span> {
+        ret-&gt;back()
+          .push_back(<span class="hljs-built_in">std</span>::make_pair(colNames[i], Value(<span class="hljs-literal">nullptr</span>)));
+      }
+    }
+    <span class="hljs-keyword">return</span> SQLITE_OK;
+  };
+  <span class="hljs-built_in">std</span>::<span class="hljs-built_in">vector</span>&lt;Row&gt; ret;
+  <span class="hljs-keyword">int</span> err = sqlite3_exec(db, sql.c_str(), callback, &amp;ret, &amp;errmsg);
+  <span class="hljs-keyword">if</span> (err != SQLITE_OK) {
+    <span class="hljs-built_in">std</span>::<span class="hljs-built_in">string</span> errstr = errmsg;
+    sqlite3_free(errmsg);
+    errmsg = <span class="hljs-literal">nullptr</span>;
+    <span class="hljs-keyword">throw</span> <span class="hljs-built_in">std</span>::runtime_error(errstr);
+  }
+  <span class="hljs-keyword">return</span> ret;
+}
+
+<span class="hljs-comment">// ============== ここから テスト ===========</span>
+
+<span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-built_in">std</span>::<span class="hljs-built_in">cout</span> &lt;&lt; <span class="hljs-string">"=== Testing ==="</span> &lt;&lt; <span class="hljs-built_in">std</span>::endl;
+  <span class="hljs-function">SQLite3 <span class="hljs-title">db</span><span class="hljs-params">(<span class="hljs-string">":memory:"</span>)</span></span>;
+  <span class="hljs-built_in">std</span>::<span class="hljs-built_in">vector</span>&lt;SQLite3::Row&gt; ret;
+  db.exec(<span class="hljs-string">"CREATE TABLE test ( "</span>
+          <span class="hljs-string">"id INTEGER PRIMARY KEY AUTOINCREMENT,"</span>
+          <span class="hljs-string">"name TEXT, "</span>
+          <span class="hljs-string">"price INTEGER, "</span>
+          <span class="hljs-string">"weight REAL, "</span>
+          <span class="hljs-string">"createdAt DATE DEFAULT CURRENT_TIMESTAMP);"</span>);
+  db.exec(<span class="hljs-string">"INSERT INTO test (name, price, weight) VALUES "</span>
+          <span class="hljs-string">"('apple', 100, 310.5);"</span>);
+  db.exec(<span class="hljs-string">"INSERT INTO test (name, price, weight) VALUES "</span>
+          <span class="hljs-string">"('banana', 200, 135.8);"</span>);
+  db.exec(<span class="hljs-string">"INSERT INTO test (name, price, weight) VALUES "</span>
+          <span class="hljs-string">"('orange', 130, 222.2);"</span>);
+  ret = db.exec(<span class="hljs-string">"SELECT * FROM test "</span>
+                <span class="hljs-string">"WHERE 100 &lt;= price AND price &lt;= 150 "</span>
+                <span class="hljs-string">"ORDER BY id DESC"</span>);
+  <span class="hljs-built_in">std</span>::<span class="hljs-built_in">cout</span> &lt;&lt; <span class="hljs-string">"==="</span> &lt;&lt; <span class="hljs-built_in">std</span>::endl;
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> <span class="hljs-keyword">auto</span> &amp;row : ret) {
+    <span class="hljs-comment">// use as map</span>
+    <span class="hljs-built_in">std</span>::<span class="hljs-built_in">map</span>&lt;<span class="hljs-built_in">std</span>::<span class="hljs-built_in">string</span>, SQLite3::Value&gt; rowMap(row.begin(), row.end());
+    <span class="hljs-built_in">std</span>::<span class="hljs-built_in">cout</span> &lt;&lt; <span class="hljs-string">"["</span> &lt;&lt; *rowMap[<span class="hljs-string">"name"</span>] &lt;&lt; <span class="hljs-string">"]"</span> &lt;&lt; <span class="hljs-built_in">std</span>::endl;
+
+    <span class="hljs-comment">// iteration</span>
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> <span class="hljs-keyword">auto</span> &amp;col : row) {
+      <span class="hljs-built_in">std</span>::<span class="hljs-built_in">cout</span> &lt;&lt; col.first &lt;&lt; <span class="hljs-string">':'</span> &lt;&lt; *col.second &lt;&lt; <span class="hljs-built_in">std</span>::endl;
+    }
+    <span class="hljs-built_in">std</span>::<span class="hljs-built_in">cout</span> &lt;&lt; <span class="hljs-string">"==="</span> &lt;&lt; <span class="hljs-built_in">std</span>::endl;
+  }
+
+  <span class="hljs-comment">// note: colunm name may be duplicate</span>
+  ret = db.exec(<span class="hljs-string">"SELECT * FROM test test1 CROSS JOIN test test2 "</span>
+                <span class="hljs-string">"WHERE 100 &lt;= test1.price AND test1.price &lt;= 150 "</span>
+                <span class="hljs-string">"ORDER BY test1.id DESC"</span>);  
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> <span class="hljs-keyword">auto</span> &amp;row : ret) {
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> <span class="hljs-keyword">auto</span> &amp;col : row) {
+      <span class="hljs-built_in">std</span>::<span class="hljs-built_in">cout</span> &lt;&lt; col.first &lt;&lt; <span class="hljs-string">':'</span> &lt;&lt; *col.second &lt;&lt; <span class="hljs-built_in">std</span>::endl;
+    }
+    <span class="hljs-built_in">std</span>::<span class="hljs-built_in">cout</span> &lt;&lt; <span class="hljs-string">"==="</span> &lt;&lt; <span class="hljs-built_in">std</span>::endl;
+  }  
+}
+</code></pre>
+<p><a href="https://gist.github.com/mitaki28/9e86923ee7f4348a7f12">一応，gist でも公開しています</a></p>
+
+  
+  <aside class="social">
+  <a href="http://b.hatena.ne.jp/entry/http://blog.mitaki28.info/1445207794102" class="hatena-bookmark-button" data-hatena-bookmark-title="Visual C++ で SQLite を使う" data-hatena-bookmark-layout="standard-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-url="http://blog.mitaki28.info/1445207794102" data-text="Visual C++ で SQLite を使う" data-dnt="true">Tweet</a>
+  <script type="text/javascript" src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </aside>
+</article>
+
+<nav class="linear">
+  <ul>
+    
+    <li class="prev">
+      <a href="/1445201410859">&lt;&lt; ブログを復活させました</a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/1445277121233">Markdown の差分更新を実装してみた &gt;&gt;</a>
+    </li>
+    
+  </ul>
+</nav>
+</main>
+
+    </div>
+
+    <footer>
+      &copy; mitaki28.info All Rights Reserved.
+    </footer>
+    <script type="text/javascript" async
+            src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML">
+    </script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+      tex2jax: {
+      inlineMath: [['$','$'], ['\\(','\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      }
+      });
+    </script>
+  </body>
+</html>

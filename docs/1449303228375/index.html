@@ -1,0 +1,406 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>JAG 夏合宿 2014 Day4 E - AI 解説＋裏話 | mitaki28.info blog</title>
+    <link rel="stylesheet" type="text/css" href="/css/normalize/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="/css/highlight/github.css" />
+    <link rel="stylesheet" type="text/css" href="/css/base.css" />
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">mitaki28.info blog</a></h1>
+      <nav>
+	    <ul>
+	  <li><a href="/">INDEX</a></li>
+	  <li><a href="/list">LIST</a></li>
+	</ul>
+      </nav>
+    </header>
+
+    <div id="content">
+    
+
+<main>
+<article>
+  <h1>
+    <a href="/1449303228375">
+      JAG 夏合宿 2014 Day4 E - AI 解説＋裏話
+    </a>
+  </h1>
+  <aside id="createdAt">
+    created at: <time> 2015-12-05 17:13:48</time>
+  </aside>
+
+  
+  <h2>はじめに</h2>
+<p>この記事は <a href="http://www.adventar.org/calendars/1165">Competitive Programming （その2） Advent Calendar 2015</a> 5日目の記事です．</p>
+<p>1年半にわたって，自分が担当していた問題の解説を放置していたのでこの機会に書きます．</p>
+<p>あと，単純に解法書くだけだとさみしい気がするので，作問体験記ということで，作問時の裏話も書きます．</p>
+<h2>問題</h2>
+<ul>
+<li>コンテスト: JAG 夏合宿 2014 Day4</li>
+<li>問題文: <a href="http://judge.u-aizu.ac.jp/onlinejudge/description.jsp?id=2643">AI | Aizu Online Judge</a></li>
+<li>作問，解説: <a href="https://twitter.com/mitaki28">@mitaki28</a></li>
+<li>テスター: <a href="https://twitter.com/ustimaw">@ustimaw</a></li>
+</ul>
+<h2>解法</h2>
+<ul>
+<li>この問題のプログラムにおいて，条件判定の結果はロボットの位置と向きにのみ依存します．</li>
+<li>つまり，ロボットの位置と向きが全く同じ状態でプログラム中のある文が2回実行された場合，ロボットは以後，同じ動作を無限に繰り返すことがわかります．
+<ul>
+<li>サンプル3でロボットがどう動くのか試してみるとわかると思います．</li>
+</ul>
+</li>
+<li>したがって，(ロボットのx座標)×(ロボットのy座標)×(ロボットの向き)×(プログラム中で実行中の文)について，1度発生した状態をすべて記憶していき，同じ状態に2回到達した時点でゴールに到達不可能なものとすることで解くことができます．</li>
+<li>計算量は $O(hw|s|)$ となり，状態数は高々 $50 \times 50 \times 4 \times 1000=10000000$ で解けます．
+<ul>
+<li>状態数の上限がわかっているので，10000000ステップ回してゴールに到達しなかったら諦めるとかでも解けます．</li>
+<li>ただし，単純に動作文の数だけ数えていると後述する空のプログラムのパターンでTLEするため注意が必要です．</li>
+</ul>
+</li>
+</ul>
+<h2>実装上の注意</h2>
+<ul>
+<li>if 文や while 文については条件によってプログラムを対応する括弧まで読み飛ばす必要があります．毎回，対応する括弧を見つけても良いですが，前処理で対応する括弧を計算しておくと，多少実装が楽になるかもしれません．</li>
+<li>同じ状態に到達したかどうかの判定は，条件文の中で行う必要があります．動作文で判定した場合，while 文中のプログラムが空の場合に無限ループが発生してしまいます．以下のケースでTLEしている人が多かったです．<pre><code><span class="hljs-number">5</span> <span class="hljs-number">3</span>
+<span class="hljs-preprocessor">###</span>
+<span class="hljs-preprocessor">#g#</span>
+<span class="hljs-preprocessor">#.#</span>
+<span class="hljs-preprocessor">#s#</span>
+<span class="hljs-preprocessor">###</span>
+{T}
+</code></pre>
+</li>
+<li>実装量的には1500〜3000byte程度になると思います．</li>
+</ul>
+<h2>ジャッジ解</h2>
+<ul>
+<li>@ustimaw, 1412 byte</li>
+<li>@mitaki28, 2029 byte</li>
+</ul>
+<pre><code class="language-c++"><span class="hljs-preprocessor">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;cassert&gt;</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;iostream&gt;</span></span>
+<span class="hljs-preprocessor">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;algorithm&gt;</span></span>
+
+<span class="hljs-keyword">using</span> <span class="hljs-keyword">namespace</span> <span class="hljs-built_in">std</span>;
+
+<span class="hljs-keyword">const</span> <span class="hljs-keyword">int</span> MAX_W = <span class="hljs-number">55</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-keyword">int</span> MAX_H = <span class="hljs-number">55</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-keyword">int</span> MAX_L = <span class="hljs-number">1100</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-keyword">int</span> D = <span class="hljs-number">4</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-keyword">int</span> dx[] = {<span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>, -<span class="hljs-number">1</span>};
+<span class="hljs-keyword">const</span> <span class="hljs-keyword">int</span> dy[] = {-<span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>};
+<span class="hljs-keyword">const</span> <span class="hljs-built_in">string</span> ACT = <span class="hljs-string">"^v&lt;&gt;"</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-built_in">string</span> DIR = <span class="hljs-string">"NESW"</span>;
+
+<span class="hljs-keyword">int</span> H, W, K;
+<span class="hljs-keyword">char</span> a[MAX_H][MAX_W];
+<span class="hljs-built_in">string</span> s;
+<span class="hljs-keyword">int</span> y, x, d, p, gy, gx, ct;
+<span class="hljs-keyword">bool</span> used[MAX_H][MAX_W][D][MAX_L];
+<span class="hljs-keyword">int</span> jump[MAX_L];
+
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">prog</span><span class="hljs-params">()</span></span>;
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">stmt</span><span class="hljs-params">()</span></span>;
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">if_stmt</span><span class="hljs-params">()</span></span>;
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">while_stmt</span><span class="hljs-params">()</span></span>;
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">action</span><span class="hljs-params">()</span></span>;
+<span class="hljs-function"><span class="hljs-keyword">bool</span> <span class="hljs-title">cond</span><span class="hljs-params">()</span></span>;
+
+<span class="hljs-function"><span class="hljs-keyword">bool</span> <span class="hljs-title">cond</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-keyword">if</span> (used[y][x][d][p]) <span class="hljs-keyword">throw</span> <span class="hljs-literal">false</span>;
+  used[y][x][d][p] = <span class="hljs-literal">true</span>;
+  <span class="hljs-keyword">bool</span> r = <span class="hljs-literal">false</span>;
+  <span class="hljs-keyword">bool</span> neg = <span class="hljs-literal">false</span>;
+  <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'~'</span>) {
+    neg = <span class="hljs-literal">true</span>;
+    p++;
+  }
+  <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'T'</span>) {
+    r = <span class="hljs-literal">true</span>;
+  } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'C'</span>) {
+    r = (a[y + dy[d]][x + dx[d]] == <span class="hljs-string">'#'</span>);
+  } <span class="hljs-keyword">else</span> {
+    r = (DIR.find(s[p]) == d);
+  }
+  p++;
+  <span class="hljs-keyword">if</span> (neg) r = !r;
+  <span class="hljs-keyword">return</span> r;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">action</span><span class="hljs-params">()</span> </span>{
+  ct++;
+  <span class="hljs-keyword">int</span> nx, ny, nd;
+  <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'^'</span>) {
+    ny = y + dy[d], nx = x + dx[d], nd = d;
+  } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'v'</span>) {
+    ny = y - dy[d], nx = x - dx[d], nd = d;
+  } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'&lt;'</span>) {
+    ny = y, nx = x, nd = (d + <span class="hljs-number">3</span>) % D;
+  } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'&gt;'</span>) {
+    ny = y, nx = x, nd = (d + <span class="hljs-number">1</span>) % D;
+  }
+  <span class="hljs-keyword">if</span> (a[ny][nx] != <span class="hljs-string">'#'</span>) {
+    y = ny;
+    x = nx;
+    d = nd;
+    <span class="hljs-keyword">if</span> (y == gy &amp;&amp; x == gx) <span class="hljs-keyword">throw</span> <span class="hljs-literal">true</span>;
+  }
+  p++;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">while_stmt</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-keyword">int</span> q = p;
+  <span class="hljs-keyword">while</span> (cond()) {
+    prog();
+    p = q;
+  }
+  p = jump[q];
+}
+
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">if_stmt</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-keyword">int</span> q = p;
+  <span class="hljs-keyword">if</span> (cond()) {
+    prog();
+  } <span class="hljs-keyword">else</span> {
+    p = jump[q];
+  }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">prog</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-keyword">for</span> (;;) {
+    <span class="hljs-keyword">if</span> (ACT.find(s[p]) != <span class="hljs-built_in">string</span>::npos) {
+      action();
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'['</span>) {
+      assert(s[p++] == <span class="hljs-string">'['</span>);
+      if_stmt();
+      assert(s[p++] == <span class="hljs-string">']'</span>);
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'{'</span>) {
+      assert(s[p++] == <span class="hljs-string">'{'</span>);
+      while_stmt();
+      assert(s[p++] == <span class="hljs-string">'}'</span>);
+    } <span class="hljs-keyword">else</span> {
+      <span class="hljs-keyword">break</span>;
+    }
+  }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">preprocess</span><span class="hljs-params">(<span class="hljs-keyword">char</span> end)</span> </span>{
+  <span class="hljs-keyword">int</span> q = p;
+  <span class="hljs-keyword">while</span> (s[p] != end) {
+    <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'['</span>) {
+      assert(s[p++] == <span class="hljs-string">'['</span>);
+      preprocess(<span class="hljs-string">']'</span>);
+      assert(s[p++] == <span class="hljs-string">']'</span>);
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (s[p] == <span class="hljs-string">'{'</span>) {
+      assert(s[p++] == <span class="hljs-string">'{'</span>);
+      preprocess(<span class="hljs-string">'}'</span>);
+      assert(s[p++] == <span class="hljs-string">'}'</span>);
+    } <span class="hljs-keyword">else</span> {
+      p++;
+    }
+  }
+  jump[q] = p;
+}
+
+
+<span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-built_in">cin</span> &gt;&gt; H &gt;&gt; W;
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; H; i++) {
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> j = <span class="hljs-number">0</span>; j &lt; W; j++) {
+      <span class="hljs-built_in">cin</span> &gt;&gt; a[i][j];
+      <span class="hljs-keyword">if</span> (a[i][j] == <span class="hljs-string">'s'</span>) {
+        y = i;
+        x = j;
+        a[i][j] = <span class="hljs-string">'.'</span>;
+      }
+      <span class="hljs-keyword">if</span> (a[i][j] == <span class="hljs-string">'g'</span>) {
+        gy = i;
+        gx = j;
+        a[i][j] = <span class="hljs-string">'.'</span>;
+      }
+    }
+  }
+  <span class="hljs-built_in">cin</span> &gt;&gt; s;
+  s.push_back(<span class="hljs-string">'$'</span>);
+  
+  p = <span class="hljs-number">0</span>;
+  preprocess(<span class="hljs-string">'$'</span>);
+  
+  p = <span class="hljs-number">0</span>;
+  ct = <span class="hljs-number">0</span>;
+  <span class="hljs-keyword">bool</span> ok = <span class="hljs-literal">false</span>;
+  <span class="hljs-keyword">try</span> {
+    prog();
+  } <span class="hljs-keyword">catch</span>(<span class="hljs-keyword">bool</span> e) {
+    ok = e;
+  }
+  <span class="hljs-built_in">cout</span> &lt;&lt; (ok ? ct : -<span class="hljs-number">1</span>) &lt;&lt; endl;
+  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
+
+</code></pre>
+<h2>裏話</h2>
+<p>せっかくなので，作問時の裏話をつらつら書きます．</p>
+<h3>問題が作られた経緯</h3>
+<ul>
+<li>ICPCということで，強実装系の構文解析問題を入れようという話になった</li>
+<li>過去の構文解析系の問題は式の解析が多かったので，if文やwhile文を使ってみた</li>
+<li>プログラムで実際にロボットを盤面上で動かしてみると面白いんじゃないかと思いつく
+<ul>
+<li>発想自体は <a href="http://judge.u-aizu.ac.jp/onlinejudge/description.jsp?id=2000">Misterious Gems | Aizu Online Judge</a> とかと同じ感じがする．</li>
+</ul>
+</li>
+<li>単純な構文解析と見せかけてメモ化が必要というのがひねりがあって面白そうという話になり採用</li>
+</ul>
+<h3>テストケースについて</h3>
+<ul>
+<li>この問題は，むしろテストケースを作るのが大変だった
+<ul>
+<li>ランダムケースを作るのが難しい
+<ul>
+<li>適当に作ると，ほぼ100%ゴールまで辿りつけない</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>最終的にランダムケースは以下の手順で作成
+<ol>
+<li>ランダムな迷路を生成</li>
+<li>ランダムなプログラムを生成</li>
+<li>1, 2を使って2つのケースを生成
+<ol>
+<li>ランダムな位置にゴールをおいたもの(到達失敗ケース)</li>
+<li>ランダムなプログラムで移動する範囲の中でスタート地点から最も離れた位置にゴールを置いたもの(到達成功ケース)</li>
+</ol>
+</li>
+</ol>
+</li>
+<li>とはいっても，今回の場合，ランダムケースはあまり当てにならないので，手動ケースも作成した
+<ul>
+<li>無限ループに関するもの: 4つ</li>
+<li>空プログラムを含むもの: 1つ</li>
+<li>50x50のほとんど空の盤面上を動き回るもの: 6つ</li>
+<li>if文やwhile文を限界までネストしたもの: 2つ</li>
+</ul>
+</li>
+<li>これでも，テストケースとしてはちょっと弱いなぁと思ってたら @ustimaw 君がマラソンマッチパワーを発揮してとんでもなく強力なケースを作ってくれていた<pre><code><span class="hljs-number">50</span> <span class="hljs-number">50</span>
+#################################################<span class="hljs-array">#
+</span><span class="hljs-array">#s..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span><span class="hljs-array">#..............</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span>##<span class="hljs-array">#...</span><span class="hljs-array">#....</span><span class="hljs-array">#
+</span><span class="hljs-array">#...........</span><span class="hljs-array">#...</span><span class="hljs-array">#.............</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#....</span>#<span class="hljs-array">#.</span><span class="hljs-array">#......</span>#<span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#...</span><span class="hljs-array">#.........</span><span class="hljs-array">#..</span>#<span class="hljs-array">#..</span><span class="hljs-array">#...</span>##<span class="hljs-array">#
+</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#....</span><span class="hljs-array">#.....</span>#<span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>#<span class="hljs-array">#....</span><span class="hljs-array">#...</span>##<span class="hljs-array">#..</span><span class="hljs-array">#.....</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#..</span>##<span class="hljs-array">#....</span><span class="hljs-array">#.</span>#<span class="hljs-array">#......</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span>##<span class="hljs-array">#.</span>##<span class="hljs-array">#.............</span><span class="hljs-array">#
+</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.......</span><span class="hljs-array">#.....</span><span class="hljs-array">#
+</span><span class="hljs-array">#............</span><span class="hljs-array">#....</span><span class="hljs-array">#.</span>#<span class="hljs-array">#..</span><span class="hljs-array">#.....</span>#<span class="hljs-array">#...</span><span class="hljs-array">#...</span>##<span class="hljs-array">#....</span>#<span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span>#<span class="hljs-array">#.</span><span class="hljs-array">#.</span>##<span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span>#<span class="hljs-array">#..</span>#<span class="hljs-array">#......</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span>##<span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#............</span><span class="hljs-array">#............</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#........</span>##<span class="hljs-array">#...</span><span class="hljs-array">#......</span><span class="hljs-array">#.......</span><span class="hljs-array">#........</span>#<span class="hljs-array">#....</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#.....</span><span class="hljs-array">#..</span>#<span class="hljs-array">#.....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>###<span class="hljs-array">#...</span><span class="hljs-array">#........</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span>#<span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#...</span><span class="hljs-array">#.......</span>#<span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span>#<span class="hljs-array">#..</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#..</span>#<span class="hljs-array">#.........</span><span class="hljs-array">#..</span><span class="hljs-array">#.........</span><span class="hljs-array">#...</span>###<span class="hljs-array">#......</span>#<span class="hljs-array">#.....</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#..</span>####<span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#..</span>#<span class="hljs-array">#.</span>#<span class="hljs-array">#........</span><span class="hljs-array">#...</span><span class="hljs-array">#........</span><span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#........</span>#<span class="hljs-array">#.</span>#<span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span>##<span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span>##<span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#.....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>#<span class="hljs-array">#.....</span><span class="hljs-array">#.....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span>#<span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>#<span class="hljs-array">#........</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>#####<span class="hljs-array">#.....</span>##<span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span>#<span class="hljs-array">#.....</span><span class="hljs-array">#....</span><span class="hljs-array">#...</span>#<span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#...</span><span class="hljs-array">#....</span>##<span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#
+</span>#<span class="hljs-array">#.......</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#....</span><span class="hljs-array">#.....</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#........</span><span class="hljs-array">#...</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#..</span><span class="hljs-array">#.........</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#......</span><span class="hljs-array">#....</span>#<span class="hljs-array">#..</span><span class="hljs-array">#....</span><span class="hljs-array">#
+</span><span class="hljs-array">#.........</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span><span class="hljs-array">#..</span>###<span class="hljs-array">#..</span>#<span class="hljs-array">#...</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span>######<span class="hljs-array">#
+</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#....</span>#<span class="hljs-array">#....</span>#<span class="hljs-array">#.</span>#<span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span>#<span class="hljs-array">#.</span>#<span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#...</span>#<span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#......</span>#<span class="hljs-array">#...</span>#<span class="hljs-array">#...</span><span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#
+</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>####<span class="hljs-array">#....</span>#<span class="hljs-array">#..</span>#<span class="hljs-array">#..</span><span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span><span class="hljs-array">#.</span>#<span class="hljs-array">#..</span><span class="hljs-array">#
+</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#........</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#...</span><span class="hljs-array">#...</span>#<span class="hljs-array">#..</span>###<span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#
+</span><span class="hljs-array">#.........</span><span class="hljs-array">#.</span><span class="hljs-array">#........</span><span class="hljs-array">#.........</span><span class="hljs-array">#..</span>###<span class="hljs-array">#..</span>###<span class="hljs-array">#.</span>##<span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#....</span>##<span class="hljs-array">#..</span><span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#...</span><span class="hljs-array">#....</span><span class="hljs-array">#
+</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>#####<span class="hljs-array">#.</span>##<span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#.....</span><span class="hljs-array">#..</span>#<span class="hljs-array">#....</span><span class="hljs-array">#
+</span>#<span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span>#<span class="hljs-array">#.</span><span class="hljs-array">#......</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span>###<span class="hljs-array">#..</span><span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#
+</span><span class="hljs-array">#.</span>##<span class="hljs-array">#.......</span><span class="hljs-array">#......</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span><span class="hljs-array">#...</span><span class="hljs-array">#...</span><span class="hljs-array">#...</span>#<span class="hljs-array">#.</span>#<span class="hljs-array">#.</span>###<span class="hljs-array">#
+</span><span class="hljs-array">#......</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span>##<span class="hljs-array">#.</span><span class="hljs-array">#..</span>#<span class="hljs-array">#...</span><span class="hljs-array">#..</span>#<span class="hljs-array">#..</span><span class="hljs-array">#...</span>###<span class="hljs-array">#
+</span><span class="hljs-array">#....</span><span class="hljs-array">#.....</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span>#<span class="hljs-array">#..</span>#<span class="hljs-array">#....</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>#<span class="hljs-array">#..</span>#<span class="hljs-array">#...</span><span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span>#<span class="hljs-array">#...</span><span class="hljs-array">#.....</span><span class="hljs-array">#......</span><span class="hljs-array">#....</span><span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#...</span><span class="hljs-array">#
+</span><span class="hljs-array">#..........</span>#<span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#........</span>#<span class="hljs-array">#.</span><span class="hljs-array">#......</span><span class="hljs-array">#...</span>##<span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#.</span>##<span class="hljs-array">#.</span><span class="hljs-array">#.......</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span>##<span class="hljs-array">#...</span><span class="hljs-array">#...</span>##<span class="hljs-array">#...</span>#<span class="hljs-array">#.....</span><span class="hljs-array">#..</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#......</span><span class="hljs-array">#.</span>##<span class="hljs-array">#....</span>#<span class="hljs-array">#..</span><span class="hljs-array">#....</span>##<span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>#<span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span>#<span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#......</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span>#<span class="hljs-array">#....</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span>#<span class="hljs-array">#........</span><span class="hljs-array">#
+</span><span class="hljs-array">#...</span><span class="hljs-array">#.......</span>##<span class="hljs-array">#.........</span><span class="hljs-array">#.</span>#<span class="hljs-array">#.</span>##<span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span>#<span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#
+</span><span class="hljs-array">#.......</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>#<span class="hljs-array">#.</span><span class="hljs-array">#.</span>#<span class="hljs-array">#.....</span><span class="hljs-array">#............</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span><span class="hljs-array">#
+</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#..........</span>#<span class="hljs-array">#........</span><span class="hljs-array">#..</span>#<span class="hljs-array">#.</span>#<span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#
+</span>#<span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.....</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span>#<span class="hljs-array">#..</span><span class="hljs-array">#.....</span><span class="hljs-array">#..........</span>#<span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#
+</span><span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span><span class="hljs-array">#...</span>#<span class="hljs-array">#......</span><span class="hljs-array">#.</span>###<span class="hljs-array">#.......</span><span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>#<span class="hljs-array">#....</span><span class="hljs-array">#.</span>#<span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span><span class="hljs-array">#.....</span><span class="hljs-array">#.</span><span class="hljs-array">#...</span><span class="hljs-array">#
+</span><span class="hljs-array">#...</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#.........</span>#<span class="hljs-array">#.</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span>#<span class="hljs-array">#........</span><span class="hljs-array">#.....</span><span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>#<span class="hljs-array">#......</span><span class="hljs-array">#...</span>#<span class="hljs-array">#..............</span><span class="hljs-array">#...</span>##<span class="hljs-array">#...</span>#<span class="hljs-array">#.</span>#<span class="hljs-array">#.</span><span class="hljs-array">#
+</span><span class="hljs-array">#.......</span><span class="hljs-array">#.</span>##<span class="hljs-array">#....</span><span class="hljs-array">#.</span><span class="hljs-array">#.....</span><span class="hljs-array">#...</span>#<span class="hljs-array">#..</span>#<span class="hljs-array">#......</span><span class="hljs-array">#.</span><span class="hljs-array">#..</span>###<span class="hljs-array">#
+</span><span class="hljs-array">#..</span><span class="hljs-array">#.</span><span class="hljs-array">#....</span><span class="hljs-array">#....</span><span class="hljs-array">#..</span><span class="hljs-array">#..</span>#<span class="hljs-array">#..</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#...</span>#<span class="hljs-array">#...</span><span class="hljs-array">#.....</span>##<span class="hljs-array">#
+</span><span class="hljs-array">#...</span><span class="hljs-array">#..</span><span class="hljs-array">#...</span><span class="hljs-array">#....................................g</span><span class="hljs-array">#
+</span>#################################################<span class="hljs-array">#
+</span>{T&lt;&gt;&lt;&lt;&gt;&lt;^&gt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&gt;&lt;&lt;&lt;&gt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;{Cv&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;^v&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;^&gt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&gt;&gt;&gt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;^&lt;&gt;&gt;&gt;&lt;&lt;^&lt;&gt;&lt;&lt;&gt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;^&gt;&lt;&gt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;^&gt;&gt;&lt;&gt;&gt;&lt;&lt;&lt;&gt;&lt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;vv&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&gt;&lt;&lt;&gt;&gt;^&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&gt;&lt;v&gt;&lt;^&lt;&lt;&lt;&lt;^&gt;&gt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;^&lt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;v&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;v&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;v&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;v&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;^&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;v&lt;&lt;&gt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;^&lt;&lt;&lt;&lt;v&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;v&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;v&lt;&gt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&gt;&gt;&gt;&lt;&lt;&gt;&gt;&lt;&gt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&gt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;v&lt;&lt;&lt;&lt;&lt;&lt;v&lt;&lt;&lt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;^&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;v&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;^&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;}&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&gt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;^&gt;&gt;&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;^&lt;&lt;&lt;&gt;&lt;&gt;&gt;&lt;&lt;&gt;&lt;&lt;&gt;&gt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&gt;&lt;&lt;&gt;&lt;&lt;&gt;}
+
+</code></pre>
+<ul>
+<li>このケース，ゴールまでに1210310(動作文)かかる
+<ul>
+<li>理論上の最大値の1/10</li>
+</ul>
+</li>
+<li>これよりも長い動作文が必要なケースを作れたという方はご一報ください．</li>
+</ul>
+</li>
+</ul>
+<h3>コンテスト中のジャッジルームにて</h3>
+<ul>
+<li>先ほど書いたように，「動作文のない無限ループが存在しうる」という罠があるにも関わらず，コンテスト開始時に問題文が『「プログラム」は<strong>複数の</strong>「文」からなり，...』となっており，あわてて修正した．</li>
+<li>AtCoder の仕様で問題文を修正すると，&quot;&lt;&quot; や &quot;&gt;&quot; のエスケープが解除されてしまうというトラップがあり，Sample Input 中で使われていた&quot;&lt;&quot; や &quot;&gt;&quot; がぶっ壊れてしまい，更なる対応に追われた．
+<ul>
+<li>基本的にAtCoderで問題文を訂正するときは，AtCoder上から書き換えるのではなく，問題文を再生成してコピペするほうが安全</li>
+</ul>
+</li>
+<li>構文解析＋探索でそれほど内容的には難しくないと考えていたので，想像以上にWAやTLEが多くミスジャッジしてしまっているのではないかとヒヤヒヤしていた．</li>
+<li>上記のトラブルや，WAやTLEの多さからジャッジルームでずっとヤバいヤバい言ってて周囲を苛つかせていたかもしれない．反省している．</li>
+</ul>
+
+  
+  <aside class="social">
+  <a href="http://b.hatena.ne.jp/entry/http://blog.mitaki28.info/1449303228375" class="hatena-bookmark-button" data-hatena-bookmark-title="JAG 夏合宿 2014 Day4 E - AI 解説＋裏話" data-hatena-bookmark-layout="standard-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-url="http://blog.mitaki28.info/1449303228375" data-text="JAG 夏合宿 2014 Day4 E - AI 解説＋裏話" data-dnt="true">Tweet</a>
+  <script type="text/javascript" src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </aside>
+</article>
+
+<nav class="linear">
+  <ul>
+    
+    <li class="prev">
+      <a href="/1448288618262">&lt;&lt; Code Festival 2015 参加記</a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/1450106282459">CodeChef CHEFFILT &gt;&gt;</a>
+    </li>
+    
+  </ul>
+</nav>
+</main>
+
+    </div>
+
+    <footer>
+      &copy; mitaki28.info All Rights Reserved.
+    </footer>
+    <script type="text/javascript" async
+            src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML">
+    </script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+      tex2jax: {
+      inlineMath: [['$','$'], ['\\(','\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      }
+      });
+    </script>
+  </body>
+</html>

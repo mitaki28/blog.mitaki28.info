@@ -1,0 +1,174 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>CodeChef CHEFFILT | mitaki28.info blog</title>
+    <link rel="stylesheet" type="text/css" href="/css/normalize/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="/css/highlight/github.css" />
+    <link rel="stylesheet" type="text/css" href="/css/base.css" />
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">mitaki28.info blog</a></h1>
+      <nav>
+	    <ul>
+	  <li><a href="/">INDEX</a></li>
+	  <li><a href="/list">LIST</a></li>
+	</ul>
+      </nav>
+    </header>
+
+    <div id="content">
+    
+
+<main>
+<article>
+  <h1>
+    <a href="/1450106282459">
+      CodeChef CHEFFILT
+    </a>
+  </h1>
+  <aside id="createdAt">
+    created at: <time> 2015-12-15 00:18:02</time>
+  </aside>
+
+  
+  <h2>はじめに</h2>
+<p>この問題を本番中解いていた時に，$O(4^W)$から$O(2^W)$に落とせることに気づいて面白かったのでメモ．ぶっちゃけ気づいたのは，提出前に手元でテストしててDPの表を出力してみたからで，完全に偶然だったりする．</p>
+<h2>問題</h2>
+<h3>参照</h3>
+<p><a href="https://www.codechef.com/DEC15/problems/CHEFFILT">https://www.codechef.com/DEC15/problems/CHEFFILT</a></p>
+<h3>要約</h3>
+<p>$S~(0 \leq S &lt; 2^W-1)$ と $n~(1 \leq n \leq 100,000)$ 個の数列$F_i(1 \leq i \leq n, 0 \leq F_i &lt; 2^W)$ が与えられる．$F_i$ の部分集合のうち全要素の xor を取った結果が $S$ となるものの個数を$1,000,000,007$で割った余りを求めよ．（$F$ には重複した値が含まれるが，異なるものとして扱う）</p>
+<h2>想定解法</h2>
+<h3>参照</h3>
+<p><a href="https://discuss.codechef.com/questions/77624/cheffilt-editorial">https://discuss.codechef.com/questions/77624/cheffilt-editorial</a></p>
+<h3>要約</h3>
+<p>$F_i$ に含まれる相違なる値は $2^W$ 個以下である．そこで，$F$ 中で値が $x$ である要素の個数を $C(x)~(0 \leq x &lt; 2^W)$とおく．</p>
+<p>同じ値同士の xor は0(すなわち $x \mathrel{\mbox{xor}} x = 0$) であることから，ある値 $x$ が $k$ 個存在する場合，</p>
+<ol>
+<li>偶数個を集合に含めた場合は，含めない場合と同じ結果</li>
+<li>奇数個を集合に含めた場合は，$x$ 以外の全ビット列と $x$ の xor を取ったものが結果</li>
+</ol>
+<p>となる．ここで，($k$ 個のものの中から偶数個選ぶ選び方）＝($k$ 個のものの中から奇数個選ぶ選び方）＝$2^{k-1}$ であることに注意すると， 以下のDPを考えることができる．</p>
+<ul>
+<li>$D(x, y) := $ $F$ で $x$ 以下の値のみからなる部分集合のうち，その全要素の xor が $y$ となるものの個数．</li>
+</ul>
+<p>$$
+D(x, y) = \begin{cases}
+D(x - 1, y) &amp; C(x) = 0 \\
+(D(x - 1, y) + D(x - 1, y \mathrel{\mbox{xor}} x)) \cdot 2^{C(x)-1} &amp; C(x) &gt; 0 \\
+\end{cases}
+$$</p>
+<p>この解法の計算量は $O(4^W)$ となる．</p>
+<h2>O(2^w) 解法</h2>
+<p>実は以下の性質が成り立つ．</p>
+<ol>
+<li>任意の $y$ について，$D(x, y) \neq 0$ ならばその値は $x$ によって一意に定まる
+$$
+D(x, y) = \begin{cases}
+0 &amp; D(x, y) = 0 \\
+E(x) &amp; D(x, y) \neq 0 \\
+\end{cases}
+$$</li>
+<li>$E(x)$ は $D(x - 1, x)$ の値から一意に計算可能
+$$
+E(x) = \begin{cases}
+E(x - 1) \cdot 2^{C(x)-1} &amp; D(x - 1, x) = 0 \\
+E(x - 1) \cdot 2^{C(x)} &amp; D(x - 1, x) \neq 0
+\end{cases}
+$$</li>
+<li>$E(x)$の構成手順から，解は $D(2^W-1, S)=0$ ならば0, そうでなければ $2^{n-m}$．ただし，$m$は$D(x, x - 1) \neq 0$ なる $x$ の個数．</li>
+</ol>
+<h3>補題</h3>
+<p>$$
+\begin{cases}
+D(x - 1, x) = 0 \wedge D(x - 1, y) \neq 0 \Rightarrow D(x - 1, y \mathrel{\mbox{xor}} x) = 0 \\
+D(x - 1, x) \neq 0 \wedge D(x - 1, y) \neq 0 \Rightarrow D(x - 1, y \mathrel{\mbox{xor}} x) \neq 0
+\end{cases}
+$$</p>
+<h4>補題の証明</h4>
+<p>$D(x - 1, x) = 0 \wedge D(x - 1, y) \neq 0 \wedge D(x - 1, y \mathrel{\mbox{xor}} x) \neq 0$ となる $y$ が存在すると仮定する．このとき，全要素の xor が $y$ になる集合の1つを $U$ ，$y \mathrel{\mbox{xor}} x$ になる集合を $V$ とおくと，$V$ から 共通集合 $U \cap V$ を取り除き差集合 $U \setminus V$ を加えた集合の全要素のxorは $x$ となるため，矛盾する．$D(x - 1, x) \neq 0 \wedge D(x - 1, y) \neq 0 \Rightarrow D(x - 1, y \mathrel{\mbox{xor}} x) \neq 0$も同様に示せる．</p>
+<h3>証明</h3>
+<p>$x=0$ のとき， $D(0, 0) = 2^{C(0)}$ かつ $D(0, y) = 0~(y \neq 0)$ なので，成り立つ($E(0)=2^{C(0)}$)</p>
+<p>$x-1$のとき，成り立つと仮定すると，$x$のとき，</p>
+<ol>
+<li>$D(x - 1, x)=0$ならば，補題から，$D(x - 1, y) \neq 0$ なる $y$ について，$D(x - 1, y \mathrel{\mbox{xor}} x) = 0$であり，$y \neq z \Rightarrow y \mathrel{\mbox{xor}} x  \neq z \mathrel{\mbox{xor}} x$であることから，
+$$
+D(x, y \mathrel{\mbox{xor}} x) = D(x, y) = D(x - 1, y) \cdot 2^{C(x)-1} = E(x-1) \cdot 2^{C(x)-1}
+$$
+であり，$y$ および $y \mathrel{\mbox{xor}} x$ 以外の値 $z$ については $D(x, z) = 0$ となる．</li>
+<li>$D(x - 1, x)\neq0$ならば，補題から，$D(x - 1, y) \neq 0$ なる $y$ について，$D(x - 1, y \mathrel{\mbox{xor}} x) = E(x - 1)$であり，
+$$
+D(x, y) = (D(x - 1, y) + D(x - 1, y \mathrel{\mbox{xor}} x)) \cdot 2^{C(x)-1} = E(x-1) \cdot 2^{C(x)}
+$$
+であり，$y$ 以外の値 $z$ については $D(x, z) = 0$ となる．</li>
+</ol>
+<p>以上から，$x$のときにも性質1,2が成り立つことがわかる．</p>
+<p>性質3は，実際に$E$の漸化式を展開してみるとわかる．</p>
+<h2>実装</h2>
+<p>重要なのは$D(x, y) &gt; 0$かどうかだけであり，個数は独立して計算できるので，$D(x, y) &gt; 0$かどうかを $2^W$ の配列$A$で管理する．これで，$D(x - 1, x) &gt; 0$かどうかを$O(1)$で判定できる．さらに，$D(x, y) &gt; 0$ なる $y$ の集合をリスト$B$でも管理しておく．$D(x, x - 1) = 0$となった場合，リスト$B$の各要素$y$について$y \mathrel{\mbox{xor}} x$ を計算し，$A$および$B$を更新する．$D(x, y) &gt; 0$ なる $y$ の集合は更新のたびに2倍になるため，更新は高々 $\log 2^W=W$ 回しか発生せず，$i$回目の更新の段階におけるリストの要素数は$2^i$のため，全体の計算量は$O(2^W)$</p>
+<h3>ソースコード</h3>
+<pre><code class="language-Python"><span class="hljs-keyword">from</span> collections <span class="hljs-keyword">import</span> Counter
+<span class="hljs-keyword">from</span> sys <span class="hljs-keyword">import</span> stdin
+_data = iter(stdin.read().split(<span class="hljs-string">'\n'</span>))
+input = <span class="hljs-keyword">lambda</span>: next(_data)
+MOD = <span class="hljs-number">1000000007</span>
+L = <span class="hljs-number">10</span>
+<span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> range(int(input())):
+    s = int(input().replace(<span class="hljs-string">'b'</span>, <span class="hljs-string">'0'</span>).replace(<span class="hljs-string">'w'</span>, <span class="hljs-string">'1'</span>), <span class="hljs-number">2</span>)
+    n = int(input())
+    ct = Counter(int(input().replace(<span class="hljs-string">'-'</span>, <span class="hljs-string">'0'</span>).replace(<span class="hljs-string">'+'</span>, <span class="hljs-string">'1'</span>), <span class="hljs-number">2</span>)
+                <span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> range(n))
+    g = [<span class="hljs-keyword">False</span>] * <span class="hljs-number">2</span>**L
+    g[s] = <span class="hljs-keyword">True</span>
+    m = <span class="hljs-number">0</span>
+    <span class="hljs-keyword">for</span> f, x <span class="hljs-keyword">in</span> ct.items():
+        <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> g[f ^ s]:
+            <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> range(<span class="hljs-number">2</span>**L):
+                <span class="hljs-keyword">if</span> g[i]: g[i ^ f] = <span class="hljs-keyword">True</span>
+            m += <span class="hljs-number">1</span>
+    print(pow(<span class="hljs-number">2</span>, n - m, MOD) <span class="hljs-keyword">if</span> g[<span class="hljs-number">0</span>] <span class="hljs-keyword">else</span> <span class="hljs-number">0</span>)
+</code></pre>
+<h2>追記</h2>
+<p>Editorialページのコメントに上がっていたのだけど，Gauss Jordan 使えば$O(\min(n, 2^W) \cdot W^2)$になるらしい．<a href="https://ja.wikipedia.org/wiki/%E8%A1%8C%E7%A9%BA%E9%96%93">行空間</a> の基底を求める問題に帰着できるっぽい？</p>
+
+  
+  <aside class="social">
+  <a href="http://b.hatena.ne.jp/entry/http://blog.mitaki28.info/1450106282459" class="hatena-bookmark-button" data-hatena-bookmark-title="CodeChef CHEFFILT" data-hatena-bookmark-layout="standard-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-url="http://blog.mitaki28.info/1450106282459" data-text="CodeChef CHEFFILT" data-dnt="true">Tweet</a>
+  <script type="text/javascript" src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </aside>
+</article>
+
+<nav class="linear">
+  <ul>
+    
+    <li class="prev">
+      <a href="/1449303228375">&lt;&lt; JAG 夏合宿 2014 Day4 E - AI 解説＋裏話</a>
+    </li>
+    
+    
+  </ul>
+</nav>
+</main>
+
+    </div>
+
+    <footer>
+      &copy; mitaki28.info All Rights Reserved.
+    </footer>
+    <script type="text/javascript" async
+            src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML">
+    </script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+      tex2jax: {
+      inlineMath: [['$','$'], ['\\(','\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      }
+      });
+    </script>
+  </body>
+</html>

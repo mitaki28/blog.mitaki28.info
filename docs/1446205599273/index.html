@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>永続 RBST を撃墜するケース | mitaki28.info blog</title>
+    <link rel="stylesheet" type="text/css" href="/css/normalize/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="/css/highlight/github.css" />
+    <link rel="stylesheet" type="text/css" href="/css/base.css" />
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">mitaki28.info blog</a></h1>
+      <nav>
+	    <ul>
+	  <li><a href="/">INDEX</a></li>
+	  <li><a href="/list">LIST</a></li>
+	</ul>
+      </nav>
+    </header>
+
+    <div id="content">
+    
+
+<main>
+<article>
+  <h1>
+    <a href="/1446205599273">
+      永続 RBST を撃墜するケース
+    </a>
+  </h1>
+  <aside id="createdAt">
+    created at: <time> 2015-10-30 20:46:39</time>
+  </aside>
+
+  
+  <h2>背景</h2>
+<p><a href="http://yosupo.hatenablog.com/entry/2015/10/29/222536">RBSTはコピー可能は嘘という疑惑</a> が興味深かったので僕もいろいろ試してみたところ，要素数 $n$ に対してそこそこの確率で木の高さが $n/4$ 程度になるクエリのパターンを見つけました．</p>
+<h2>テストケース</h2>
+<p><a href="http://yosupo.hatenablog.com/entry/2015/10/29/222536">RBSTはコピー可能は嘘という疑惑</a> のテストケースに対して，一旦 split してそのまま merge するという一見なんの意味もない操作を付け加えただけです．なんでこれで劇的にバランスが悪くなるのか僕にもわかりません．</p>
+<pre><code class="language-c++"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span> </span>{
+  RBST&lt;Value&gt; tr; 
+  tr = tr.insert(<span class="hljs-number">0</span>, <span class="hljs-number">1</span>); <span class="hljs-comment">//trは1ノード</span>
+
+  srand(time(<span class="hljs-literal">nullptr</span>)); <span class="hljs-comment">//このブロックは乱数を適当に消費するためにあります</span>
+  <span class="hljs-keyword">int</span> rn = rand() % <span class="hljs-number">10000</span>;
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; rn; i++) {
+    <span class="hljs-keyword">int</span> sz = tr.count();
+    tr = tr.merge(tr); 
+    tr = tr.split(sz).first; <span class="hljs-comment">//同じものをくっつけて分離するだけの意味のない動作</span>
+  }
+  <span class="hljs-built_in">cout</span> &lt;&lt; tr.count() &lt;&lt; endl;
+  assert(tr.count() == <span class="hljs-number">1</span>);
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">20000</span>; i++) {
+    <span class="hljs-keyword">int</span> sz = tr.count();
+    <span class="hljs-built_in">cout</span> &lt;&lt; sz &lt;&lt; endl;
+    RBST&lt;Value&gt; tr1, tr2;
+    tie(tr, ignore) = tr.split(tr.count() / <span class="hljs-number">2</span> + <span class="hljs-number">1</span>);
+    tie(tr1, tr2) = tr.split(tr.count() / <span class="hljs-number">2</span> + <span class="hljs-number">1</span>); <span class="hljs-comment">//いったん分離して</span>
+    tr = tr1.merge(tr2);  <span class="hljs-comment">// そのままくっつける</span>
+    tr = tr.merge(tr);
+    <span class="hljs-built_in">printf</span>(<span class="hljs-string">"%d\n"</span>, tr.max_depth());
+  }
+
+  <span class="hljs-comment">//ここでtrはバランスが崩れまくっている(ことがある)はず</span>
+  <span class="hljs-built_in">printf</span>(<span class="hljs-string">"%d\n"</span>, tr.max_depth());
+    
+  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;  
+}
+</code></pre>
+<h2>可視化</h2>
+<p>試しに，木のバランスが露骨に悪くなった時の形状を出力してみました．2本の長いパスのいずれかに頂点が集中してしまっている状態のようです．</p>
+<p><img src="/upload/rbst.dot.png" alt="rbst"></p>
+
+  
+  <aside class="social">
+  <a href="http://b.hatena.ne.jp/entry/http://blog.mitaki28.info/1446205599273" class="hatena-bookmark-button" data-hatena-bookmark-title="永続 RBST を撃墜するケース" data-hatena-bookmark-layout="standard-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-url="http://blog.mitaki28.info/1446205599273" data-text="永続 RBST を撃墜するケース" data-dnt="true">Tweet</a>
+  <script type="text/javascript" src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </aside>
+</article>
+
+<nav class="linear">
+  <ul>
+    
+    <li class="prev">
+      <a href="/1445277121233">&lt;&lt; Markdown の差分更新を実装してみた</a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/1447078746296">永続赤黒木を実装した時のメモ &gt;&gt;</a>
+    </li>
+    
+  </ul>
+</nav>
+</main>
+
+    </div>
+
+    <footer>
+      &copy; mitaki28.info All Rights Reserved.
+    </footer>
+    <script type="text/javascript" async
+            src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML">
+    </script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+      tex2jax: {
+      inlineMath: [['$','$'], ['\\(','\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Markdown の差分更新を実装してみた | mitaki28.info blog</title>
+    <link rel="stylesheet" type="text/css" href="/css/normalize/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="/css/highlight/github.css" />
+    <link rel="stylesheet" type="text/css" href="/css/base.css" />
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">mitaki28.info blog</a></h1>
+      <nav>
+	    <ul>
+	  <li><a href="/">INDEX</a></li>
+	  <li><a href="/list">LIST</a></li>
+	</ul>
+      </nav>
+    </header>
+
+    <div id="content">
+    
+
+<main>
+<article>
+  <h1>
+    <a href="/1445277121233">
+      Markdown の差分更新を実装してみた
+    </a>
+  </h1>
+  <aside id="createdAt">
+    created at: <time> 2015-10-20 02:52:01</time>
+  </aside>
+
+  
+  <h2>はじめに</h2>
+<p>何番煎じかわかりませんが，Markdown のライブプレビューを実装してみました．</p>
+<ul>
+<li><a href="http://mitaki28.info/cmark/">本体</a></li>
+<li><a href="https://github.com/mitaki28/commonmark-live-preview">ソースコード</a></li>
+</ul>
+<h2>使い方</h2>
+<ul>
+<li>左のテキストエリアに文字を入力すると自動的に右の画面にプレビューが表示されます．</li>
+<li>文法はいわゆる Markdown です．</li>
+<li><strong>画面同期</strong>:  入力のたびに編集位置と対応する変換後の位置に自動的にスクロールします．</li>
+<li><strong>構文ハイライト</strong>:<pre><code class="language-javascript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sqr</span>(<span class="hljs-params">x</span>) </span>{
+  <span class="hljs-keyword">return</span> x * x
+}
+</code></pre>
+</li>
+<li><strong>自動保存</strong>: 編集中の内容は自動的に保存され，次の起動時に復元されます．</li>
+<li><strong>数式</strong>: $\LaTeX$ 記法の数式を利用できるように独自拡張しています．<code>$ax+b$</code>のように<code>$</code>で囲まれた文章は $ax+b$ のような，インライン数式になります．<pre><code>$$
+\sum_{i=<span class="hljs-number">1</span>}^n=\frac{n(n+<span class="hljs-number">1</span>)}{<span class="hljs-number">2</span>}
+$$
+</code></pre>
+のように，<code>$$</code>で囲まれたブロックは
+$$
+\sum_{i=1}^n=\frac{n(n+1)}{2}
+$$
+のようなディスプレイ数式になります．</li>
+</ul>
+<h2>作った動機</h2>
+<p>この手のライブプレビュアーは山ほどあるんですが，ほとんどのものがマシン性能にものを言わせて毎回フルレンダリングしてるせいで，数式みたいにレンダリングに時間が掛かるものが文章中にあるとガクガクになるのをなんとかしたかった．</p>
+<h2>使ってる技術について</h2>
+<p>レンダリングを削減するとなると，差分だけ更新しようという話になるんですが、最近巷で話題らしい  <a href="https://facebook.github.io/react/docs/reconciliation.html">react</a> は木の差分更新を実装してるらしいのでその記事を参考に実装してみることにしました．（実装自体は読んでないので本当にあっているかどうかは知らない）</p>
+<p>大雑把に言うと，<a href="https://github.com/jgm/commonmark.js">commonmark.js</a> という Markdown の AST を吐き出してくれるライブラリがあるので，変更のたびに各ノードのハッシュ値を計算して子の構造まで含めて完全に同じノードを適当に使いまわしています．あとは，なるべくDOMの変更が少なくなるようにヒューリスティックを使ったりしてます．</p>
+<p>エディタ部分には <a href="http://ace.c9.io/#nav=about">Ace Editor</a>を使っています．この辺は</p>
+<ul>
+<li><a href="http://imaya.blog.jp/archives/6095327.html">3連休だし Web ブラウザで動作する Markdown Editor 作った : document</a></li>
+<li><a href="http://saygox.blogspot.jp/2015/04/ace-editor-markdown.html">できるだけ適当に語りき: ACE editor で ライブビュー可能な markdownエディタ を語りき</a></li>
+</ul>
+<p>あたりを参考にしていますが，ASTにコードの位置情報が保存されているため，従来のものより正確に同期をとれます．</p>
+<h2>課題</h2>
+<ul>
+<li>ぶっちゃけまだほとんどテストしてないのでバグる可能性が高い
+<ul>
+<li>執筆中の大事なデータが消えたとかの責任は取れません</li>
+</ul>
+</li>
+<li>$a$, $b$, $c$, $d$, $e$, $f$ みたいにたくさんの数式が書かれている状態で先頭に新たに数式を追加しようとした場合，ひとつ目の<code>$</code>を入力した瞬間にすべての括弧の対応関係がずれるのでとんでもなくレンダリングに時間がかかる．
+<ul>
+<li>対応関係の曖昧な記号を構文エラーにすれば解決できそう</li>
+</ul>
+</li>
+<li>ASTのパース自体は差分更新してないので，結局更新ごとに全文章を読んでる
+<ul>
+<li>パースも差分更新したいけど実装がつらすぎる．</li>
+<li>4000行ぐらいのテキストを編集してもリアルタイムにレンダリングできてるので，そこまでやる需要はなさそう．</li>
+</ul>
+</li>
+<li>Chrome 以外の環境でテストしてない</li>
+</ul>
+
+  
+  <aside class="social">
+  <a href="http://b.hatena.ne.jp/entry/http://blog.mitaki28.info/1445277121233" class="hatena-bookmark-button" data-hatena-bookmark-title="Markdown の差分更新を実装してみた" data-hatena-bookmark-layout="standard-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-url="http://blog.mitaki28.info/1445277121233" data-text="Markdown の差分更新を実装してみた" data-dnt="true">Tweet</a>
+  <script type="text/javascript" src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </aside>
+</article>
+
+<nav class="linear">
+  <ul>
+    
+    <li class="prev">
+      <a href="/1445207794102">&lt;&lt; Visual C++ で SQLite を使う</a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/1446205599273">永続 RBST を撃墜するケース &gt;&gt;</a>
+    </li>
+    
+  </ul>
+</nav>
+</main>
+
+    </div>
+
+    <footer>
+      &copy; mitaki28.info All Rights Reserved.
+    </footer>
+    <script type="text/javascript" async
+            src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML">
+    </script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+      tex2jax: {
+      inlineMath: [['$','$'], ['\\(','\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,226 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>永続赤黒木を実装した時のメモ | mitaki28.info blog</title>
+    <link rel="stylesheet" type="text/css" href="/css/normalize/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="/css/highlight/github.css" />
+    <link rel="stylesheet" type="text/css" href="/css/base.css" />
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">mitaki28.info blog</a></h1>
+      <nav>
+	    <ul>
+	  <li><a href="/">INDEX</a></li>
+	  <li><a href="/list">LIST</a></li>
+	</ul>
+      </nav>
+    </header>
+
+    <div id="content">
+    
+
+<main>
+<article>
+  <h1>
+    <a href="/1447078746296">
+      永続赤黒木を実装した時のメモ
+    </a>
+  </h1>
+  <aside id="createdAt">
+    created at: <time> 2015-11-09 23:19:06</time>
+  </aside>
+
+  
+  <h2>はじめに</h2>
+<p><a href="http://www.ioi-jp.org/camp/2012/2012-sp-tasks/2012-sp-day4-copypaste-slides.pdf">Copy&amp;Paste の解説スライド</a>を読んで，永続赤黒木を実装してみました．</p>
+<p>merge-split ベースの赤黒木の実装は insert-erase ベースのものと比較するとかなりシンプルで，1重回転だけで実装できますし，行数的にもRBST+50〜60行で実装できます．</p>
+<p>ただし，上のスライドだけだと，なんでこれで動くのかを結構考察する必要があったり，split に関しては擬似コードどおりに書いても正しく動かなかったりするので，備忘録も兼ねてメモしておきます．</p>
+<h2>実装前に理解しておくべきこと</h2>
+<ul>
+<li>P.11 の平衝条件はしっかり頭に叩き込んでおきましょう．
+<ol>
+<li>各ノードには赤か黒の色がついている</li>
+<li>根は黒</li>
+<li>葉は黒</li>
+<li>赤いノードは隣接しない</li>
+<li>根から葉までのパス上の黒いノード数は一定</li>
+</ol>
+</li>
+<li>さらに，上記の条件から以下のことが導けます
+<ol start="6">
+<li>条件3,5 から，葉以外のノードは必ず2つの子を持つ
+<ul>
+<li>持たないとすれば，条件5に反する</li>
+<li>この性質を覚えておくと，実装上 null チェックの数が少なくて済みます</li>
+</ul>
+</li>
+<li>変更によって根が赤になった場合，単純に根を黒に戻せば良い．
+<ul>
+<li>条件4, 5は保たれるので問題ない</li>
+</ul>
+</li>
+</ol>
+</li>
+<li>このアルゴリズムで値を持つのは葉だけ
+<ul>
+<li>一般に出回っているRBSTとは違うので注意しましょう．</li>
+</ul>
+</li>
+<li>各ノードはランクを持つ（P. 13）
+<ul>
+<li>葉から自身までの黒いノードの数．<strong>ただし自分自身は含まない．</strong></li>
+<li>条件5 から，<code>a.l.rank + is_black(a.l.color)</code> と <code>a.r.rank + is_black(a.r.color)</code> は一致する．</li>
+<li>したがって，計算時は左右のどちらの子を使って計算してもよい．</li>
+</ul>
+</li>
+</ul>
+<h2>ノードの生成</h2>
+<p>葉と中間ノードの性質が全く異なるので，別々の生成関数を用意しておくと便利です．</p>
+<pre><code>function <span class="hljs-function"><span class="hljs-title">leaf</span><span class="hljs-params">(value)</span></span>
+    <span class="hljs-tag">a</span> := new Node.
+    <span class="hljs-tag">a</span><span class="hljs-class">.color</span> := 黒.
+    <span class="hljs-tag">a</span><span class="hljs-class">.size</span> := <span class="hljs-number">1</span>.
+    <span class="hljs-tag">a</span><span class="hljs-class">.rank</span> := <span class="hljs-number">0</span>.
+    <span class="hljs-tag">a</span><span class="hljs-class">.value</span> := value.
+    <span class="hljs-tag">a</span><span class="hljs-class">.l</span> := null.
+    <span class="hljs-tag">a</span><span class="hljs-class">.r</span> := null.
+    return <span class="hljs-tag">a</span>.
+
+function <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(l, r, color)</span></span>
+    <span class="hljs-tag">a</span> := new Node.
+    <span class="hljs-tag">a</span><span class="hljs-class">.color</span> := <span class="hljs-attribute">color</span>.
+    <span class="hljs-tag">a</span><span class="hljs-class">.size</span> := l<span class="hljs-class">.size</span> + r<span class="hljs-class">.size</span>.
+    <span class="hljs-tag">a</span><span class="hljs-class">.rank</span> := l<span class="hljs-class">.rank</span> + (<span class="hljs-number">1</span> <span class="hljs-keyword">if</span> l<span class="hljs-class">.color</span> = 黒 <span class="hljs-keyword">else</span> <span class="hljs-number">0</span>).
+    <span class="hljs-tag">a</span><span class="hljs-class">.l</span> := l.
+    <span class="hljs-tag">a</span><span class="hljs-class">.r</span> := r.
+    return <span class="hljs-tag">a</span>.
+</code></pre>
+<h2>Merge</h2>
+<p>Merge 操作は P.17〜22 に書かれています．基本的には，P.18, 19 の擬似コードを実装すれば動きます．ただし，（上と同様）の部分は，左右反転して実装する必要があることに注意してください．全部書くと以下のようになります．</p>
+<pre><code>function <span class="hljs-function"><span class="hljs-title">mergeSub</span><span class="hljs-params">(a, b)</span></span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-tag">a</span><span class="hljs-class">.rank</span> &lt; <span class="hljs-tag">b</span>.rank):
+        c := <span class="hljs-function"><span class="hljs-title">mergeSub</span><span class="hljs-params">(a, b.l)</span></span>.
+        <span class="hljs-keyword">if</span> (<span class="hljs-tag">b</span><span class="hljs-class">.color</span> = 黒 and c<span class="hljs-class">.color</span> = 赤 and c<span class="hljs-class">.l</span><span class="hljs-class">.color</span> = 赤):
+            <span class="hljs-keyword">if</span> (<span class="hljs-tag">b</span><span class="hljs-class">.r</span><span class="hljs-class">.color</span> = 黒):
+                return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(c.l, node(c.r, b.r, 赤)</span></span>, 黒).
+            <span class="hljs-keyword">else</span>:
+                return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(node(c.l, c.r, 黒)</span></span>, <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(b.r.l, b.r.r, 黒)</span></span>, 赤).
+        <span class="hljs-keyword">else</span>:
+            return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(c, b.r, b.color)</span></span>.
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-tag">a</span><span class="hljs-class">.rank</span> &gt; <span class="hljs-tag">b</span>.rank):
+        c := <span class="hljs-function"><span class="hljs-title">mergeSub</span><span class="hljs-params">(a.r, b)</span></span>.
+        <span class="hljs-keyword">if</span> (<span class="hljs-tag">a</span><span class="hljs-class">.color</span> = 黒 and c<span class="hljs-class">.color</span> = 赤 and c<span class="hljs-class">.r</span><span class="hljs-class">.color</span> = 赤):
+            <span class="hljs-keyword">if</span> (<span class="hljs-tag">a</span><span class="hljs-class">.l</span><span class="hljs-class">.color</span> = 黒):
+                return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(node(a.l, c.l, 赤)</span></span>, c<span class="hljs-class">.r</span>, 黒).
+            <span class="hljs-keyword">else</span>:
+                return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(node(a.l.l, a.l.r, 黒)</span></span>, <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(c.l, c.r, 黒)</span></span>, 赤).
+        <span class="hljs-keyword">else</span>:
+            return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(a.l, c, a.color)</span></span>.
+    <span class="hljs-keyword">else</span>:
+        return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(a, b, 赤)</span></span>. 
+</code></pre>
+<p>この節の以降では，実装時に，疑問に思ったことをメモしておきます．興味がなければ読み飛ばしてもらって構いません．</p>
+<h3>場合分けについて</h3>
+<p>P. 18 の実装では，<code>a.rank &lt; b.rank</code>（<code>a.rank &gt; b.rank</code>） が確定したあとは，P.20, 21の2パターンとそれ以外の場合しか場合分けをしていません．実は，これで，条件を満たすために必要な操作がすべて列挙されています．</p>
+<h4>null チェックを行っていない点</h4>
+<p>この実装では，<code>b</code> の子および <code>c</code> の子の色を参照していますが，null チェックは必要ありません．</p>
+<p>まず，<code>b</code> の子についてですが，<code>a.rank &lt; b.rank</code> が成り立っており<code>a.rank &gt;= 0</code> であることから <code>b.rank &gt;= 1</code>であることがわかります．したがって，<code>b</code>は葉ではなく，条件6から，葉以外のノードは必ず2つの子を持つので，null チェックは不要です．</p>
+<p>また，<code>c</code> については，少なくとも1つ赤のノードを挿入することから <code>c</code> 自身が null になることはなく，<code>c</code> を作成する時点で，<code>a</code> も <code>b</code> も null になり得ない（少なくとも葉まで到達した段階で <code>a.rank == b.rank</code> となる）ことから，<code>c</code> の子についても null チェックは不要であることがわかります．</p>
+<h4><code>c</code> が赤の場合は一旦そのままにしている点</h4>
+<p><code>b</code> が赤のノードの場合に，そのまま <code>c</code> を左の子とした場合に，赤のノードが連続し，条件4が満たされないままになる可能性があるように思えるかもしれません．</p>
+<p>しかし，実際には以下の2通りしかなく，問題ありません．</p>
+<ol>
+<li><code>b</code> が根のとき，条件7から<code>b</code>を黒にすれば平衝条件を満たす．</li>
+<li><code>b</code> が根ではないとき，<code>b</code> と <code>b</code> の親の間には条件4が成り立っていることから，<code>b</code>の親は必ず黒であり，この場合，<code>b</code> の親の段階で平衝条件を満たすように変更が加わるため，問題ない．</li>
+</ol>
+<h4><code>c</code> が赤の場合， <code>c</code> の右の子は黒で確定する点</h4>
+<p>まず，重要なポイントとして，<code>a</code> と <code>b</code> の rank が突然入れ替わることはないため，最初に <code>a.rank &lt; b.rank</code> が成り立てば，<code>a.rank == b.rank</code> が成り立つまでは，常に，<code>a.rank &lt; b.rank</code> が再帰的に成り立ちます．つまり，<code>a.rank &lt; b.rank</code> の場合は，再帰的に <code>b</code> の左側の子に対して，<code>a</code> をマージする操作が繰り返されることになります．</p>
+<p>さて，<code>c</code> が赤である場合を列挙してみると，</p>
+<ol>
+<li><code>c</code> が <code>a.rank == b.rank</code> のケースで新たに挿入されたノードの場合， rank の定義から，<code>a.rank == b.rank</code> となるとき， <code>b</code> は常に黒のノードなので <code>c</code> の右の子は黒．</li>
+<li><code>c</code> が P.21 のケースで赤に変更されたノードの場合，右の子は黒．(実際には左の子も黒なのでこのケースが問題になることはない)</li>
+<li><code>a &lt; b.l.rank</code> で，<code>a</code> が <code>b.l.l</code> にマージされ，なおかつ<code>b.l.color == RED</code> のとき，<code>c.r == b.l.r</code> であり，条件4から <code>b.l.r</code> は必ず黒．</li>
+</ol>
+<h2>Split</h2>
+<p><strong>split 操作は，P. 24 の擬似コードをそのまま実装しても正しく動きません．</strong> 正確には，以下の擬似コードを実装する必要があります．</p>
+<pre><code>function <span class="hljs-function"><span class="hljs-title">split</span><span class="hljs-params">(a, k)</span></span>
+    <span class="hljs-keyword">if</span> (k = <span class="hljs-number">0</span>):
+        return &lt;null, <span class="hljs-function"><span class="hljs-title">asRoot</span><span class="hljs-params">(a)</span></span>&gt;.
+    <span class="hljs-keyword">if</span> (k = <span class="hljs-tag">a</span>.size):
+        return &lt;<span class="hljs-function"><span class="hljs-title">asRoot</span><span class="hljs-params">(a)</span></span>, null&gt;.
+    <span class="hljs-keyword">if</span> (k &lt; <span class="hljs-tag">a</span><span class="hljs-class">.l</span><span class="hljs-class">.size</span>):
+        &lt;L, R&gt; := <span class="hljs-function"><span class="hljs-title">split</span><span class="hljs-params">(a.l, k)</span></span>.
+        return &lt;L, <span class="hljs-function"><span class="hljs-title">merge</span><span class="hljs-params">(R, asRoot(a.r)</span></span>)&gt;.
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (k &gt; <span class="hljs-tag">a</span><span class="hljs-class">.l</span><span class="hljs-class">.size</span>):
+        &lt;L, R&gt; := <span class="hljs-function"><span class="hljs-title">split</span><span class="hljs-params">(a.r, k - a.l.size)</span></span>.
+        return &lt;<span class="hljs-function"><span class="hljs-title">merge</span><span class="hljs-params">(asRoot(a.l)</span></span>, L), R&gt;.
+    <span class="hljs-keyword">else</span>:
+        return &lt;<span class="hljs-function"><span class="hljs-title">asRoot</span><span class="hljs-params">(a.l)</span></span>, <span class="hljs-function"><span class="hljs-title">asRoot</span><span class="hljs-params">(a.r)</span></span>&gt;. 
+        
+function <span class="hljs-function"><span class="hljs-title">asRoot</span><span class="hljs-params">(a)</span></span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-tag">a</span> is null):
+        return null.
+    <span class="hljs-keyword">if</span> (<span class="hljs-tag">a</span><span class="hljs-class">.color</span> = 黒):
+        return <span class="hljs-tag">a</span>.
+    <span class="hljs-keyword">else</span>:
+        return <span class="hljs-function"><span class="hljs-title">node</span><span class="hljs-params">(a.l, a.r, 黒)</span></span>.
+</code></pre>
+<p>正しく動かない原因は，条件2を満たさないためです．<code>a.l</code>, <code>a.r</code> は <code>a</code> から切り離した段階で独立した木になるため，戻り値として戻す，または，mergeする前の段階で，条件7を使って，根を黒にしておく必要があります．</p>
+<h2>計算量について</h2>
+<ul>
+<li>merge: $O(|a.rank - b.rank|)$</li>
+<li>split: $O(\log n)$</li>
+</ul>
+<p>RBSTと比較すると，葉にしか値を持たなかったり，追加の情報を保持しないといけなかったりと，定数倍が重そうなイメージですが，merge の計算量が$O(|a.rank - b.rank|)$なので，実際には insert や erase の操作のように似たような rank の木をくっつける場合には RBST より高速に動作する・・・はず．また，merge が$O(|a.rank - b.rank|)$なおかげで，線形時間で初期構築できます．(P.26参照)</p>
+<p>あと，split において，merge を何回も呼び出しているのに $O(\log n)$ になるのは，非直感的かもしれません．split の操作は，再帰の各段階において，</p>
+<ul>
+<li>左の部分木を <code>L</code> に merge する</li>
+<li>右の部分木を <code>R</code> に merge する</li>
+</ul>
+<p>のいずれかの操作を繰り返し行っているものと考えることができます．このとき，部分木は rank の小さい順に merge されていくため，マージの計算量が$O(|a.rank - b.rank|)$であることから，$O(\log n)$になります．（$1,2,5, \ldots \log n$ のようなソート済みの列があった時に隣接する要素の差の和は $O(\log n)$ にしかなりません．）</p>
+
+  
+  <aside class="social">
+  <a href="http://b.hatena.ne.jp/entry/http://blog.mitaki28.info/1447078746296" class="hatena-bookmark-button" data-hatena-bookmark-title="永続赤黒木を実装した時のメモ" data-hatena-bookmark-layout="standard-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a>
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-url="http://blog.mitaki28.info/1447078746296" data-text="永続赤黒木を実装した時のメモ" data-dnt="true">Tweet</a>
+  <script type="text/javascript" src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </aside>
+</article>
+
+<nav class="linear">
+  <ul>
+    
+    <li class="prev">
+      <a href="/1446205599273">&lt;&lt; 永続 RBST を撃墜するケース</a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/1448288618262">Code Festival 2015 参加記 &gt;&gt;</a>
+    </li>
+    
+  </ul>
+</nav>
+</main>
+
+    </div>
+
+    <footer>
+      &copy; mitaki28.info All Rights Reserved.
+    </footer>
+    <script type="text/javascript" async
+            src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML">
+    </script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+      tex2jax: {
+      inlineMath: [['$','$'], ['\\(','\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      }
+      });
+    </script>
+  </body>
+</html>
